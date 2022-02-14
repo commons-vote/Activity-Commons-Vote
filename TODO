@@ -1,0 +1,16 @@
+TODO
+====
+1. Vystup Validation::check_author() bude to datoveho objektu.
+2. Vystup Validation::check_image_created() bude to datoveho objektu.
+6.
+
+Applied
+=======
+4. Implementovat Validation::check_image_in_one_section().
+OK [20211110] skim
+
+3. Implementovat Stats::newcomers().
+OK [20211110] skim
+
+5. Rewrite newcomers() to use only db
+OK [20211110] skim
