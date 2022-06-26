@@ -6,7 +6,6 @@ use warnings;
 use Class::Utils qw(set_params);
 use Commons::Link;
 use Commons::Vote::Backend;
-use Data::Commons::Vote::User;
 use DateTime;
 use DateTime::Format::Strptime;
 use Unicode::UTF8 qw(decode_utf8);
@@ -45,11 +44,11 @@ sub newcomers {
 	}
 
 	my @newcomers = ();
-	my $user_id = {};
+	my $person_id = {};
 	foreach my $image ($self->{'_backend'}->fetch_images) {
 		my $uploader = $image->uploader->wm_username;
-		if (! exists $user_id->{$uploader}) {
-			$user_id->{$uploader} = 1;
+		if (! exists $person_id->{$uploader}) {
+			$person_id->{$uploader} = 1;
 			if ($self->_is_newcomer($image->uploader, $comp)) {
 				push @newcomers, $image->uploader;
 			}
@@ -60,16 +59,16 @@ sub newcomers {
 }
 
 sub _is_newcomer {
-	my ($self, $user, $comp) = @_;
+	my ($self, $person, $comp) = @_;
 
 	# Not upload.
-	if (! defined $user->first_upload_at) {
+	if (! defined $person->first_upload_at) {
 		return 0;
 	}
 
 	# Timestamp in <$dt_start, $dt_end>.
-	if (DateTime->compare($comp->dt_from, $user->first_upload_at) == -1
-		&& DateTime->compare($user->first_upload_at, $comp->dt_to) < 1) {
+	if (DateTime->compare($comp->dt_from, $person->first_upload_at) == -1
+		&& DateTime->compare($person->first_upload_at, $comp->dt_to) < 1) {
 
 		return 1;
 	} else {

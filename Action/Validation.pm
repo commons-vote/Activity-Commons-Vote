@@ -37,11 +37,11 @@ sub check_author {
 	foreach my $author (sort keys %{$authors_hr}) {
 		if ($authors_hr->{$author} > $number_of_photos) {
 			print "Author '$author': $authors_hr->{$author}\n";
-			my $user = $self->{'schema'}->resultset('User')->search({
+			my $person = $self->{'schema'}->resultset('Person')->search({
 				'wm_username' => $author,
 			})->single;
 			my @images = $self->{'schema'}->resultset('Image')->search({
-				'uploader_id' => $user->user_id,
+				'uploader_id' => $person->person_id,
 			});
 			foreach my $image (@images) {
 				print "\t".$self->{'_commons_link'}->mw_link($image->image)."\n";

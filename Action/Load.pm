@@ -106,11 +106,11 @@ sub _uploader_wm_username {
 	my ($self, $wm_username) = @_;
 
 	if (! exists $self->{'uploaders'}->{'wm_username'}->{$wm_username}) {
-		my @users = $self->{'backend'}->fetch_users({'wm_username' => $wm_username});
-		if (@users > 1) {
+		my @people = $self->{'backend'}->fetch_people({'wm_username' => $wm_username});
+		if (@people > 1) {
 			err "Bad identifier 'wm_username'. Has multiple values.";
 		}
-		my $uploader = $users[0];
+		my $uploader = $people[0];
 		if (! $uploader) {
 
 			# Timestamp of first upload.
@@ -118,7 +118,7 @@ sub _uploader_wm_username {
 				= $self->{'_fetcher'}->date_of_first_upload($wm_username);
 
 			# TODO Store author name (from $image_info_hr)
-			$uploader = $self->{'backend'}->save_user({
+			$uploader = $self->{'backend'}->save_person({
 				'first_upload_at' => $dt_first_upload,
 				'wm_username' => encode_utf8($wm_username),
 			});
