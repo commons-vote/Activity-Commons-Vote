@@ -28,8 +28,8 @@ requires:
   Class::Utils: 0
   perl: 5.8.0
 resources:
-  bugtracker: https://github.com/michal-josef-spacek/Commons-Vote-Action/issues
-  homepage: https://github.com/michal-josef-spacek/Commons-Vote-Action
+  bugtracker: https://github.com/commons-vote/Commons-Vote-Action/issues
+  homepage: https://github.com/commons-vote/Commons-Vote-Action
   license: http://opensource.org/licenses/bsd-license.php
-  repository: git://github.com/michal-josef-spacek/Commons-Vote-Action
+  repository: git://github.com/commons-vote/Commons-Vote-Action
 version: '0.01'
