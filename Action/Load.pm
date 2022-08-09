@@ -5,6 +5,9 @@ use warnings;
 
 use Class::Utils qw(set_params);
 use Commons::Vote::Fetcher;
+use Data::Commons::Vote::Image;
+use Data::Commons::Vote::Person;
+use Data::Commons::Vote::SectionImage;
 use DateTime;
 use Error::Pure qw(err);
 use Unicode::UTF8 qw(encode_utf8);
@@ -82,24 +85,45 @@ sub load {
 			# TODO Find or create, jinak duplikuji
 			$self->_verbose("Save image '$image_hr->{'title'}'.");
 			# TODO Store comment
-			my $image = $self->{'backend'}->save_image({
-				'image' => encode_utf8($image_hr->{'title'}),
-				'uploader_id' => $uploader->id,
-				'image_created' => $image_first_rev_hr->{'timestamp'},
-				'created_by' => $self->{'creator'}->id,
-				'width' => $image_info_hr->{'width'},
-				'height' => $image_info_hr->{'height'},
-			});
+			my $image = $self->{'backend'}->save_image(
+				Data::Commons::Vote::Image->new(
+					'image' => encode_utf8($image_hr->{'title'}),
+					'uploader' => $uploader,
+					'dt_created' => $self->_commons_ts_to_dt($image_first_rev_hr->{'timestamp'}),
+					'created_by' => $self->{'creator'},
+					'width' => $image_info_hr->{'width'},
+					'height' => $image_info_hr->{'height'},
+				),
+			);
 
 			$self->_verbose("Save image '$image_hr->{'title'}' in section with id '$section_id'.");
-			$self->{'backend'}->save_section_image({
-				'section_id' => $section_id,
-				'image_id' => $image->id,
-			});
+			$self->{'backend'}->save_section_image(
+				Data::Commons::Vote::SectionImage->new(
+					'section_id' => $section_id,
+					'image' => $image,
+				),
+			);
 		}	
 	}
 
 	return;
+}
+
+sub _commons_ts_to_dt {
+	my ($self, $ts) = @_;
+
+	my ($date, $time) = split m/T/ms, $ts;
+	my ($year, $month, $day) = split m/-/ms, $date;
+	my ($hour, $min, $sec) = split m/:/ms, $time;
+
+	return DateTime->new(
+		'day' => $day,
+		'month' => $month,
+		'year' => $year,
+		'hour' => $hour,
+		'minute' => $min,
+		'second' => $sec,
+	);
 }
 
 sub _uploader_wm_username {
@@ -118,10 +142,12 @@ sub _uploader_wm_username {
 				= $self->{'_fetcher'}->date_of_first_upload($wm_username);
 
 			# TODO Store author name (from $image_info_hr)
-			$uploader = $self->{'backend'}->save_person({
-				'first_upload_at' => $dt_first_upload,
-				'wm_username' => encode_utf8($wm_username),
-			});
+			$uploader = $self->{'backend'}->save_person(
+				Data::Commons::Vote::Person->new(
+					'first_upload_at' => $dt_first_upload,
+					'wm_username' => encode_utf8($wm_username),
+				),
+			);
 		}
 		$self->{'uploaders'}->{'wm_username'}->{$wm_username} = $uploader;
 	}
