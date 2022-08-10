@@ -118,7 +118,7 @@ sub check_image_size {
 	return;
 }
 
-sub check_image_uploaded {
+sub check_image_created {
 	my ($self, $dt_start, $dt_end) = @_;
 
 	my $dtf = $self->{'schema'}->storage->datetime_parser;
