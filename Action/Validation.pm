@@ -69,6 +69,23 @@ sub check_image_dimension {
 	return;
 }
 
+sub check_image_dimension_short {
+	my ($self, $min_dimension) = @_;
+
+	my @rs = $self->{'schema'}->resultset('Image')->search({
+		-and => [
+			'width' => {'<', $min_dimension},
+			'height' => {'<', $min_dimension},
+		],
+	});
+
+	foreach my $rs (@rs) {
+		print $rs->width.'x'.$rs->height.': '.$self->{'_commons_link'}->link($rs->image)."\n";
+	}
+
+	return;
+}
+
 # Check if each image is in one section only.
 sub check_image_in_one_section {
 	my $self = shift;
