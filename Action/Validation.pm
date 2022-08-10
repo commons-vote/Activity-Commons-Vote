@@ -73,7 +73,7 @@ sub check_image_dimension_short {
 	my ($self, $min_dimension) = @_;
 
 	my @rs = $self->{'schema'}->resultset('Image')->search({
-		-and => [
+		-or => [
 			'width' => {'<', $min_dimension},
 			'height' => {'<', $min_dimension},
 		],
