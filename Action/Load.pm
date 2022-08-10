@@ -72,7 +72,7 @@ sub load {
 		} else {
 			@images = $self->{'_fetcher'}->images_in_category($category);
 		}
-		foreach my $image_hr ($self->{'_fetcher'}->images_in_category($category)) {
+		foreach my $image_hr (@images) {
 
 			# First upload revision.
 			$self->_verbose("Fetch first revision for image '$image_hr->{'title'}'.");
