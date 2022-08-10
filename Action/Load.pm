@@ -96,7 +96,10 @@ sub load {
 			my $image = $self->{'backend'}->save_image(
 				Data::Commons::Vote::Image->new(
 					'created_by' => $self->{'creator'},
-					'dt_created' => $self->_commons_ts_to_dt($image_first_rev_hr->{'timestamp'}),
+					# YYYY-MM-DD HH:MM:SS
+					'dt_created' => $self->_commons_ts2_to_dt($image_info_hr->{'datetime_created'}),
+					# YYYY-MM-DDTHH:MM:SS
+					'dt_uploaded' => $self->_commons_ts_to_dt($image_first_rev_hr->{'timestamp'}),
 					'height' => $image_info_hr->{'height'},
 					'image' => encode_utf8($image_hr->{'title'}),
 					'size' => $image_info_hr->{'size'},
@@ -132,6 +135,26 @@ sub _commons_ts_to_dt {
 		'hour' => $hour,
 		'minute' => $min,
 		'second' => $sec,
+	);
+}
+
+sub _commons_ts2_to_dt {
+	my ($self, $ts) = @_;
+
+	my ($date, $time) = split m/\s+/ms, $ts;
+	my ($year, $month, $day) = split m/-/ms, $date;
+	my ($hour, $min, $sec);
+	if (defined $time) {
+		($hour, $min, $sec) = split m/:/ms, $time;
+	}
+
+	return DateTime->new(
+		'day' => int($day),
+		'month' => int($month),
+		'year' => int($year),
+		defined $hour ? ('hour' => int($hour)) : (),
+		defined $min ? ('minute' => int($min)) : (),
+		defined $sec ? ('second' => int($sec)) : (),
 	);
 }
 
