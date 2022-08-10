@@ -136,6 +136,24 @@ sub check_image_created {
 	return;
 }
 
+sub check_image_uploaded {
+	my ($self, $dt_start, $dt_end) = @_;
+
+	my $dtf = $self->{'schema'}->storage->datetime_parser;
+	my @rs = $self->{'schema'}->resultset('Image')->search({
+		-or => [
+			'image_uploaded' => {'<', $dtf->format_datetime($dt_start)},
+			'image_uploaded' => {'>', $dtf->format_datetime($dt_end)},
+		],
+	});
+
+	foreach my $rs (@rs) {
+		print $rs->image_uploaded.': '.$self->{'_commons_link'}->link($rs->image)."\n";
+	}
+
+	return;
+}
+
 1;
 
 __END__
