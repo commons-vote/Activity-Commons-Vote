@@ -52,6 +52,23 @@ sub check_author {
 	return;
 }
 
+sub check_image_dimension {
+	my ($self, $width, $height) = @_;
+
+	my @rs = $self->{'schema'}->resultset('Image')->search({
+		-or => [
+			'width' => {'<', $width},
+			'height' => {'<', $height},
+		],
+	});
+
+	foreach my $rs (@rs) {
+		print $rs->width.'x'.$rs->height.': '.$self->{'_commons_link'}->link($rs->image)."\n";
+	}
+
+	return;
+}
+
 # Check if each image is in one section only.
 sub check_image_in_one_section {
 	my $self = shift;
