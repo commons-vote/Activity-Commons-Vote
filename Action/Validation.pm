@@ -104,6 +104,20 @@ sub check_image_in_one_section {
 	return;
 }
 
+sub check_image_size {
+	my ($self, $min_size) = @_;
+
+	my @rs = $self->{'schema'}->resultset('Image')->search({
+		'size' => {'<', $min_size},
+	});
+
+	foreach my $rs (@rs) {
+		print $rs->size.': '.$self->{'_commons_link'}->link($rs->image)."\n";
+	}
+
+	return;
+}
+
 sub check_image_uploaded {
 	my ($self, $dt_start, $dt_end) = @_;
 
