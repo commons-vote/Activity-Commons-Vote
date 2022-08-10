@@ -95,12 +95,12 @@ sub load {
 			# TODO Store comment
 			my $image = $self->{'backend'}->save_image(
 				Data::Commons::Vote::Image->new(
+					'created_by' => $self->{'creator'},
+					'dt_created' => $self->_commons_ts_to_dt($image_first_rev_hr->{'timestamp'}),
+					'height' => $image_info_hr->{'height'},
 					'image' => encode_utf8($image_hr->{'title'}),
 					'uploader' => $uploader,
-					'dt_created' => $self->_commons_ts_to_dt($image_first_rev_hr->{'timestamp'}),
-					'created_by' => $self->{'creator'},
 					'width' => $image_info_hr->{'width'},
-					'height' => $image_info_hr->{'height'},
 				),
 			);
 
