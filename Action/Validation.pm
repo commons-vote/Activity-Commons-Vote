@@ -52,7 +52,7 @@ sub check_author {
 	return;
 }
 
-sub check_image_created {
+sub check_image_uploaded {
 	my ($self, $dt_start, $dt_end) = @_;
 
 	my $dtf = $self->{'schema'}->storage->datetime_parser;
