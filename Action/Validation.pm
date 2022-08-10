@@ -52,24 +52,6 @@ sub check_author {
 	return;
 }
 
-sub check_image_uploaded {
-	my ($self, $dt_start, $dt_end) = @_;
-
-	my $dtf = $self->{'schema'}->storage->datetime_parser;
-	my @rs = $self->{'schema'}->resultset('Image')->search({
-		-or => [
-			'image_created' => {'<', $dtf->format_datetime($dt_start)},
-			'image_created' => {'>', $dtf->format_datetime($dt_end)},
-		],
-	});
-
-	foreach my $rs (@rs) {
-		print $rs->image_created.': '.$self->{'_commons_link'}->link($rs->image)."\n";
-	}
-
-	return;
-}
-
 # Check if each image is in one section only.
 sub check_image_in_one_section {
 	my $self = shift;
@@ -83,6 +65,24 @@ sub check_image_in_one_section {
 		if ($image_hr->{$image} > 1) {
 			print "Image '$image' is in more sections.\n";
 		}
+	}
+
+	return;
+}
+
+sub check_image_uploaded {
+	my ($self, $dt_start, $dt_end) = @_;
+
+	my $dtf = $self->{'schema'}->storage->datetime_parser;
+	my @rs = $self->{'schema'}->resultset('Image')->search({
+		-or => [
+			'image_created' => {'<', $dtf->format_datetime($dt_start)},
+			'image_created' => {'>', $dtf->format_datetime($dt_end)},
+		],
+	});
+
+	foreach my $rs (@rs) {
+		print $rs->image_created.': '.$self->{'_commons_link'}->link($rs->image)."\n";
 	}
 
 	return;
