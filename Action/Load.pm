@@ -56,7 +56,7 @@ sub new {
 }
 
 sub load {
-	my ($self, $section_id) = @_;
+	my ($self, $section_id, $opts_hr) = @_;
 
 	# Over all categories defined in section.
 	$self->_verbose("Fetch section with id '$section_id' categories");
@@ -64,6 +64,14 @@ sub load {
 
 		# Over all images in category.
 		$self->_verbose("Fetch images in Wikimedia Commons category '$category'.");
+		my @images;
+		if (defined $opts_hr && exists $opts_hr->{'recursive'}
+			&& $opts_hr->{'recursive'} == 1) {
+
+			@images = $self->{'_fetcher'}->images_in_category_recursive($category);
+		} else {
+			@images = $self->{'_fetcher'}->images_in_category($category);
+		}
 		foreach my $image_hr ($self->{'_fetcher'}->images_in_category($category)) {
 
 			# First upload revision.
