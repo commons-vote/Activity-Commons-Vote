@@ -26,7 +26,7 @@ sub new {
 	return $self;
 }
 
-sub check_author {
+sub check_author_photos {
 	my ($self, $number_of_photos) = @_;
 
 	my $authors_hr = {};
