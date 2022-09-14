@@ -5,7 +5,7 @@ use warnings;
 use inc::Module::Install;
 
 # Definition.
-abstract 'commons.vote actions';
+abstract 'Activities for commons.vote application.';
 author 'Michal Josef Spacek <skim@cpan.org>';
 author_requires 'English' => 0;
 author_requires 'File::Object' => 0.03;
@@ -14,14 +14,14 @@ author_requires 'Test::NoWarnings' => 0;
 author_requires 'Test::Pod' => 0;
 author_requires 'Test::Pod::Coverage' => 0;
 license 'bsd';
-name 'Commons-Vote-Action';
-readme_from 'Action.pm';
+name 'Activity-Commons-Vote';
+readme_from 'Vote.pm';
 recursive_author_tests('xt');
 requires 'Class::Utils' => 0;
 requires 'perl' => '5.8.0';
-resources 'bugtracker' => 'https://github.com/commons-vote/Commons-Vote-Action/issues';
-resources 'homepage' => 'https://github.com/commons-vote/Commons-Vote-Action';
-resources 'repository' => 'git://github.com/commons-vote/Commons-Vote-Action';
+resources 'bugtracker' => 'https://github.com/commons-vote/Activity-Commons-Vote/issues';
+resources 'homepage' => 'https://github.com/commons-vote/Activity-Commons-Vote';
+resources 'repository' => 'git://github.com/commons-vote/Activity-Commons-Vote';
 test_requires 'English' => 0;
 test_requires 'Error::Pure::Utils' => 0.22;
 test_requires 'File::Object' => 0.03;

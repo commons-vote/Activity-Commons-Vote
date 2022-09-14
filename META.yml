@@ -1,5 +1,5 @@
 ---
-abstract: 'commons.vote actions'
+abstract: 'Activities for commons.vote application.'
 author:
   - 'Michal Josef Spacek <skim@cpan.org>'
 build_requires:
@@ -18,7 +18,7 @@ license: bsd
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
   version: 1.4
-name: Commons-Vote-Action
+name: Activity-Commons-Vote
 no_index:
   directory:
     - inc
@@ -28,8 +28,8 @@ requires:
   Class::Utils: 0
   perl: 5.8.0
 resources:
-  bugtracker: https://github.com/commons-vote/Commons-Vote-Action/issues
-  homepage: https://github.com/commons-vote/Commons-Vote-Action
+  bugtracker: https://github.com/commons-vote/Activity-Commons-Vote/issues
+  homepage: https://github.com/commons-vote/Activity-Commons-Vote
   license: http://opensource.org/licenses/bsd-license.php
-  repository: git://github.com/commons-vote/Commons-Vote-Action
+  repository: git://github.com/commons-vote/Activity-Commons-Vote
 version: '0.01'
