@@ -3,9 +3,9 @@ package Activity::Commons::Vote::Stats;
 use strict;
 use warnings;
 
+use Backend::DB::Commons::Vote;
 use Class::Utils qw(set_params);
 use Commons::Link;
-use Commons::Vote::Backend;
 use DateTime;
 use DateTime::Format::Strptime;
 use Unicode::UTF8 qw(decode_utf8);
@@ -23,7 +23,7 @@ sub new {
 	# Process parameters.
 	set_params($self, @params);
 
-	$self->{'_backend'} = Commons::Vote::Backend->new(
+	$self->{'_backend'} = Backend::DB::Commons::Vote->new(
 		'schema' => $self->{'schema'},
 	);
 
