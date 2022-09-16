@@ -111,6 +111,7 @@ sub load {
 			$self->_verbose("Save image '$image_hr->{'title'}' in section with id '$section_id'.");
 			$self->{'backend'}->save_section_image(
 				Data::Commons::Vote::SectionImage->new(
+					'created_by' => $self->{'creator'},
 					'image' => $image,
 					'section_id' => $section_id,
 				),
