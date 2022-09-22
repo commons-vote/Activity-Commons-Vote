@@ -10,6 +10,7 @@ use Data::Commons::Vote::Person;
 use Data::Commons::Vote::SectionImage;
 use DateTime;
 use Error::Pure qw(err);
+use Scalar::Util qw(blessed);
 use Unicode::UTF8 qw(encode_utf8);
 
 our $VERSION = 0.01;
@@ -42,6 +43,9 @@ sub new {
 	# DB backend.
 	if (! defined $self->{'backend'}) {
 		err "Parameter 'backend' is required.";
+	}
+	if (! blessed($self->{'backed'}) || ! $self->{'backend'}->isa('Backend::DB::Commons::Vote')) {
+		err "Parameter 'backend' must be a 'Backend::DB::Commons::Vote' object.";
 	}
 
 	# Wikimedia Commons fetcher.
