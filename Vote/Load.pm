@@ -44,7 +44,7 @@ sub new {
 	if (! defined $self->{'backend'}) {
 		err "Parameter 'backend' is required.";
 	}
-	if (! blessed($self->{'backed'}) || ! $self->{'backend'}->isa('Backend::DB::Commons::Vote')) {
+	if (! blessed($self->{'backend'}) || ! $self->{'backend'}->isa('Backend::DB::Commons::Vote')) {
 		err "Parameter 'backend' must be a 'Backend::DB::Commons::Vote' object.";
 	}
 
