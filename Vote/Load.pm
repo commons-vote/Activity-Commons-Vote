@@ -60,6 +60,61 @@ sub new {
 }
 
 sub load {
+	my ($self, $competition_id, $opts_hr) = @_;
+
+	my @sections = $self->{'backend'}->fetch_competition_sections($competition_id);
+	foreach my $section (@sections) {
+		$self->_load_section($section->id, $opts_hr);
+	}
+
+	# Update loaded timestamp in competition table.
+	my $dt_now = DateTime->now;
+	$self->{'backend'}->schema->resultset('Competition')->search({
+		'competition_id' => $competition_id
+	})->update({'images_loaded_at' => $dt_now});
+
+	return;
+}
+
+
+sub _commons_ts_to_dt {
+	my ($self, $ts) = @_;
+
+	my ($date, $time) = split m/T/ms, $ts;
+	my ($year, $month, $day) = split m/-/ms, $date;
+	my ($hour, $min, $sec) = split m/:/ms, $time;
+
+	return DateTime->new(
+		'day' => $day,
+		'month' => $month,
+		'year' => $year,
+		'hour' => $hour,
+		'minute' => $min,
+		'second' => $sec,
+	);
+}
+
+sub _commons_ts2_to_dt {
+	my ($self, $ts) = @_;
+
+	my ($date, $time) = split m/\s+/ms, $ts;
+	my ($year, $month, $day) = split m/-/ms, $date;
+	my ($hour, $min, $sec);
+	if (defined $time) {
+		($hour, $min, $sec) = split m/:/ms, $time;
+	}
+
+	return DateTime->new(
+		'day' => int($day),
+		'month' => int($month),
+		'year' => int($year),
+		defined $hour ? ('hour' => int($hour)) : (),
+		defined $min ? ('minute' => int($min)) : (),
+		defined $sec ? ('second' => int($sec)) : (),
+	);
+}
+
+sub _load_section {
 	my ($self, $section_id, $opts_hr) = @_;
 
 	# Over all categories defined in section.
@@ -124,43 +179,6 @@ sub load {
 	}
 
 	return;
-}
-
-sub _commons_ts_to_dt {
-	my ($self, $ts) = @_;
-
-	my ($date, $time) = split m/T/ms, $ts;
-	my ($year, $month, $day) = split m/-/ms, $date;
-	my ($hour, $min, $sec) = split m/:/ms, $time;
-
-	return DateTime->new(
-		'day' => $day,
-		'month' => $month,
-		'year' => $year,
-		'hour' => $hour,
-		'minute' => $min,
-		'second' => $sec,
-	);
-}
-
-sub _commons_ts2_to_dt {
-	my ($self, $ts) = @_;
-
-	my ($date, $time) = split m/\s+/ms, $ts;
-	my ($year, $month, $day) = split m/-/ms, $date;
-	my ($hour, $min, $sec);
-	if (defined $time) {
-		($hour, $min, $sec) = split m/:/ms, $time;
-	}
-
-	return DateTime->new(
-		'day' => int($day),
-		'month' => int($month),
-		'year' => int($year),
-		defined $hour ? ('hour' => int($hour)) : (),
-		defined $min ? ('minute' => int($min)) : (),
-		defined $sec ? ('second' => int($sec)) : (),
-	);
 }
 
 sub _uploader_wm_username {
