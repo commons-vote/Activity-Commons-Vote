@@ -11,7 +11,6 @@ use Data::Commons::Vote::SectionImage;
 use DateTime;
 use Error::Pure qw(err);
 use Scalar::Util qw(blessed);
-use Unicode::UTF8 qw(encode_utf8);
 
 our $VERSION = 0.01;
 
@@ -200,7 +199,7 @@ sub _uploader_wm_username {
 			$uploader = $self->{'backend'}->save_person(
 				Data::Commons::Vote::Person->new(
 					'first_upload_at' => $dt_first_upload,
-					'wm_username' => encode_utf8($wm_username),
+					'wm_username' => $wm_username,
 				),
 			);
 		}
