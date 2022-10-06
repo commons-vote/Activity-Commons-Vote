@@ -154,13 +154,13 @@ sub _load_section {
 			# TODO Store comment
 			my $image = $self->{'backend'}->save_image(
 				Data::Commons::Vote::Image->new(
+					'commons_name' => $image_hr->{'title'},
 					'created_by' => $self->{'creator'},
 					# YYYY-MM-DD HH:MM:SS
 					'dt_created' => $self->_commons_ts2_to_dt($image_info_hr->{'datetime_created'}),
 					# YYYY-MM-DDTHH:MM:SS
 					'dt_uploaded' => $self->_commons_ts_to_dt($image_first_rev_hr->{'timestamp'}),
 					'height' => $image_info_hr->{'height'},
-					'image' => $image_hr->{'title'},
 					'size' => $image_info_hr->{'size'},
 					'uploader' => $uploader,
 					'width' => $image_info_hr->{'width'},
