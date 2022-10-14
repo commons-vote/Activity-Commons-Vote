@@ -121,7 +121,6 @@ sub _load_section {
 	foreach my $category ($self->{'backend'}->fetch_section_categories($section_id)) {
 
 		# Over all images in category.
-		$self->_verbose("Fetch images in Wikimedia Commons category '$category'.");
 		my @images;
 		if (defined $opts_hr && exists $opts_hr->{'recursive'}
 			&& $opts_hr->{'recursive'} == 1) {
@@ -130,26 +129,26 @@ sub _load_section {
 		} else {
 			@images = $self->{'_fetcher'}->images_in_category($category);
 		}
+		$self->_verbose("Fetch images in Wikimedia Commons category '$category'.");
 		foreach my $image_hr (@images) {
 
 			# First upload revision.
-			$self->_verbose("Fetch first revision for image '$image_hr->{'title'}'.");
 			my $image_first_rev_hr = $self->{'_fetcher'}
 				->image_upload_revision($image_hr->{'title'});
+			$self->_verbose("Fetch first revision for image '$image_hr->{'title'}'.");
 
 			# Extra info.
-			$self->_verbose("Fetch image info for image '$image_hr->{'title'}'.");
 			my $image_info_hr = $self->{'_fetcher'}
 				->image_info($image_hr->{'title'});
+			$self->_verbose("Fetch image info for image '$image_hr->{'title'}'.");
 
 			# Fetch or create uploader.
-			$self->_verbose("Fetch or create uploader record for ".
-				"Wikimedia user '$image_first_rev_hr->{'user'}'.");
 			my $uploader = $self->_uploader_wm_username(
 				$image_first_rev_hr->{'user'});
+			$self->_verbose("Fetch or create uploader record for ".
+				"Wikimedia user '$image_first_rev_hr->{'user'}'.");
 
 			# TODO Find or create, jinak duplikuji
-			$self->_verbose("Save image '$image_hr->{'title'}'.");
 			# TODO Store comment
 			my $image = $self->{'backend'}->save_image(
 				Data::Commons::Vote::Image->new(
@@ -165,8 +164,8 @@ sub _load_section {
 					'width' => $image_info_hr->{'width'},
 				),
 			);
+			$self->_verbose("Save image '$image_hr->{'title'}'.");
 
-			$self->_verbose("Save image '$image_hr->{'title'}' in section with id '$section_id'.");
 			$self->{'backend'}->save_section_image(
 				Data::Commons::Vote::SectionImage->new(
 					'created_by' => $self->{'creator'},
@@ -174,6 +173,7 @@ sub _load_section {
 					'section_id' => $section_id,
 				),
 			);
+			$self->_verbose("Save image '$image_hr->{'title'}' in section with id '$section_id'.");
 		}	
 	}
 
