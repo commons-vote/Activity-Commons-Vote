@@ -57,6 +57,9 @@ sub new {
 		err "Parameter 'verbose_cb' must be a code.";
 	}
 
+	# Log message.
+	$self->{'log'} = [];
+
 	return $self;
 }
 
@@ -73,6 +76,25 @@ sub load {
 	$self->{'backend'}->schema->resultset('Competition')->search({
 		'competition_id' => $competition_id
 	})->update({'images_loaded_at' => $dt_now});
+
+	# Log type.
+	my $log_type = $self->{'backend'}->fetch_log_type_name('load_competition');
+
+	# Competition.
+	my $competition = $self->{'backend'}->fetch_competition($competition_id);
+
+	# Save log.
+	$self->{'backend'}->save_log(
+		Data::Commons::Vote::Log->new(
+			'competition' => $competition,
+			'created_by' => $self->{'creator'},
+			'log' => (join "\n", @{$self->{'log'}}),
+			'log_type' => $log_type,
+		),
+	);
+
+	# Cleanup log.
+	$self->{'log'} = [];
 
 	return;
 }
@@ -234,6 +256,8 @@ sub _verbose {
 	if (defined $self->{'verbose_cb'}) {
 		$self->{'verbose_cb'}->($message);
 	}
+
+	push @{$self->{'log'}}, $message;
 
 	return;
 }
