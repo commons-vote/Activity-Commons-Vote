@@ -9,8 +9,10 @@ use Data::Commons::Vote::Image;
 use Data::Commons::Vote::Person;
 use Data::Commons::Vote::SectionImage;
 use DateTime;
+use English;
 use Error::Pure qw(err);
 use Scalar::Util qw(blessed);
+use Unicode::UTF8 qw(encode_utf8);
 
 our $VERSION = 0.01;
 
@@ -77,7 +79,7 @@ sub load {
 
 
 sub _commons_ts_to_dt {
-	my ($self, $ts) = @_;
+	my ($self, $ts, $image) = @_;
 
 	my ($date, $time) = split m/T/ms, $ts;
 	my ($year, $month, $day) = split m/-/ms, $date;
@@ -94,7 +96,7 @@ sub _commons_ts_to_dt {
 }
 
 sub _commons_ts2_to_dt {
-	my ($self, $ts) = @_;
+	my ($self, $ts, $image) = @_;
 
 	my ($date, $time) = split m/\s+/ms, $ts;
 	my ($year, $month, $day) = split m/-/ms, $date;
@@ -103,14 +105,24 @@ sub _commons_ts2_to_dt {
 		($hour, $min, $sec) = split m/:/ms, $time;
 	}
 
-	return DateTime->new(
-		'day' => int($day),
-		'month' => int($month),
-		'year' => int($year),
-		defined $hour ? ('hour' => int($hour)) : (),
-		defined $min ? ('minute' => int($min)) : (),
-		defined $sec ? ('second' => int($sec)) : (),
-	);
+	my $dt = eval {
+		DateTime->new(
+			defined $day ? ('day' => int($day)) : (),
+			defined $month ? ('month' => int($month)) : (),
+			defined $year ? ('year' => int($year)) : (),
+			defined $hour ? ('hour' => int($hour)) : (),
+			defined $min ? ('minute' => int($min)) : (),
+			defined $sec ? ('second' => int($sec)) : (),
+		);
+	};
+	if ($EVAL_ERROR) {
+		err 'Cannot parse date.',
+			'Date from Wikimedia Commons', $ts,
+			'Image on Wikimedia Commons', encode_utf8($image),
+		;
+	}
+
+	return $dt;
 }
 
 sub _load_section {
@@ -149,13 +161,20 @@ sub _load_section {
 				"Wikimedia user '$image_first_rev_hr->{'user'}'.");
 
 			# Find or create image.
+			# YYYY-MM-DD HH:MM:SS
+			my $dt_created = eval {
+				$self->_commons_ts2_to_dt($image_info_hr->{'datetime_created'}, $image_hr->{'title'});
+			};
+			if ($EVAL_ERROR) {
+				$self->_verbose($EVAL_ERROR.': '.$image_hr->{'title'});
+				next;
+			}
 			# TODO Store comment
 			my $image = $self->{'backend'}->save_image(
 				Data::Commons::Vote::Image->new(
 					'commons_name' => $image_hr->{'title'},
 					'created_by' => $self->{'creator'},
-					# YYYY-MM-DD HH:MM:SS
-					'dt_created' => $self->_commons_ts2_to_dt($image_info_hr->{'datetime_created'}),
+					'dt_created' => $dt_created,
 					# YYYY-MM-DDTHH:MM:SS
 					'dt_uploaded' => $self->_commons_ts_to_dt($image_first_rev_hr->{'timestamp'}),
 					'height' => $image_info_hr->{'height'},
