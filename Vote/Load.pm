@@ -148,7 +148,7 @@ sub _load_section {
 			$self->_verbose("Fetch or create uploader record for ".
 				"Wikimedia user '$image_first_rev_hr->{'user'}'.");
 
-			# TODO Find or create, jinak duplikuji
+			# Find or create image.
 			# TODO Store comment
 			my $image = $self->{'backend'}->save_image(
 				Data::Commons::Vote::Image->new(
