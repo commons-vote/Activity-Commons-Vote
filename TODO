@@ -2,7 +2,8 @@ TODO
 ====
 1. Vystup Validation::check_author() bude to datoveho objektu.
 2. Vystup Validation::check_image_created() bude to datoveho objektu.
-6.
+6. Rename delete competition to better name. I could delete section or whatever.
+7.
 
 Applied
 =======
