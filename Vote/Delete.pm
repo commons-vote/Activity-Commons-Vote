@@ -18,6 +18,9 @@ sub new {
 	# Backend.
 	$self->{'backend'} = undef;
 
+	# Creator.
+	$self->{'creator'} = undef;
+
 	# Verbose print callback.
 	$self->{'verbose_cb'} = undef;
 
@@ -37,6 +40,9 @@ sub new {
 		err "Parameter 'verbose_cb' must be a code.";
 	}
 
+	# Log message.
+	$self->{'log'} = [];
+
 	return $self;
 }
 
@@ -53,12 +59,57 @@ sub delete {
 	return;
 }
 
+sub delete_competition_section_images {
+	my ($self, $competition) = @_;
+
+	if (! blessed($competition) || ! $competition->isa('Data::Commons::Vote::Competition')) {
+		err "Bad object, must be a 'Data::Commons::Vote::Competition' object.";
+	}
+
+	my @sections = $self->{'backend'}->fetch_competition_sections($competition->id);
+	my $num = 0;
+	foreach my $section (@sections) {
+		my $deleted_images_count = $self->{'backend'}->delete_section_images($section->id);
+		if ($deleted_images_count) {
+			$self->_verbose("Delete section images with '".$section->id."' id.");
+		} else {
+			$self->_verbose("No section images for '".$section->id."' id.");
+		}
+		$num += $deleted_images_count;
+	}
+	if ($num) {
+		$self->_verbose("Delete competion images with '".$competition->id."' id.");
+	} else {
+		$self->_verbose("No competition images for '".$competition->id."' id.");
+	}
+
+	# Log type.
+	my $log_type = $self->{'backend'}->fetch_log_type_name('delete_competition_images');
+
+	# Save log.
+	$self->{'backend'}->save_log(
+		Data::Commons::Vote::Log->new(
+			'competition' => $competition,
+			'created_by' => $self->{'creator'},
+			'log' => (join "\n", @{$self->{'log'}}),
+			'log_type' => $log_type,
+		),
+	);
+
+	# Cleanup log.
+	$self->{'log'} = [];
+
+	return;
+}
+
 sub _verbose {
 	my ($self, $message) = @_;
 
 	if (defined $self->{'verbose_cb'}) {
 		$self->{'verbose_cb'}->($message);
 	}
+
+	push @{$self->{'log'}}, $message;
 
 	return;
 }
