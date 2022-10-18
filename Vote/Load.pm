@@ -6,6 +6,7 @@ use warnings;
 use Class::Utils qw(set_params);
 use Commons::Vote::Fetcher;
 use Data::Commons::Vote::Image;
+use Data::Commons::Vote::License;
 use Data::Commons::Vote::Person;
 use Data::Commons::Vote::SectionImage;
 use DateTime;
@@ -13,6 +14,7 @@ use English;
 use Error::Pure qw(err);
 use Scalar::Util qw(blessed);
 use Unicode::UTF8 qw(encode_utf8);
+use Wikibase::API;
 
 our $VERSION = 0.01;
 
@@ -56,6 +58,11 @@ sub new {
 	if (defined $self->{'verbose_cb'} && ref $self->{'verbose_cb'} ne 'CODE') {
 		err "Parameter 'verbose_cb' must be a code.";
 	}
+
+	# Wikibase API object.
+	$self->{'_wikibase_api'} = Wikibase::API->new(
+		'mediawiki_site' => 'www.wikidata.org',
+	);
 
 	# Log message.
 	$self->{'log'} = [];
@@ -147,6 +154,35 @@ sub _commons_ts2_to_dt {
 	return $dt;
 }
 
+sub _license_text {
+	my ($self, $license_qid) = @_;
+
+	my $license = $self->{'backend'}->fetch_license_by_qid($license_qid);
+	if (! defined $license) {
+
+		# Fetch license from Wikidata.
+		my $item = $self->{'_wikibase_api'}->get_item($license_qid);
+		my ($title, $short_name);
+		if ($item) {
+			$title = $self->_look_for_structured_item($item, 'P1476');
+			$short_name = $self->_look_for_structured_item($item, 'P1813');
+		} else {
+			return;
+		}
+
+		$license = $self->{'backend'}->save_license(
+			Data::Commons::Vote::License->new(
+				'created_by' => $self->{'creator'},
+				'qid' => $license_qid,
+				'short_name' => $short_name,
+				'text' => $title,
+			),
+		);
+	}
+
+	return $license;
+}
+
 sub _load_section {
 	my ($self, $section_id, $opts_hr) = @_;
 
@@ -176,6 +212,17 @@ sub _load_section {
 				->image_info($image_hr->{'title'});
 			$self->_verbose("Fetch image info for image '$image_hr->{'title'}'.");
 
+			# Structured data.
+			my $struct_data = $self->{'_fetcher'}->image_structured_data('M'.$image_info_hr->{'pageid'});
+			$self->_verbose("Fetch image structured data for image '$image_hr->{'title'}'.");
+			my $license_qid = $self->_look_for_structured_item($struct_data, 'P275');
+			my $license;
+			if (defined $license_qid) {
+				$license = $self->_license_text($license_qid);
+				$self->_verbose("Found license in structured data for image '$image_hr->{'title'}' (".$license->text.').');
+			}
+			# TODO Look for inception (or other property for created at?).
+
 			# Fetch or create uploader.
 			my $uploader = $self->_uploader_wm_username(
 				$image_first_rev_hr->{'user'});
@@ -204,6 +251,7 @@ sub _load_section {
 					'size' => $image_info_hr->{'size'},
 					'uploader' => $uploader,
 					'width' => $image_info_hr->{'width'},
+					defined $license ? ('license_obj' => $license) : (),
 				),
 			);
 			$self->_verbose("Save image '$image_hr->{'title'}'.");
@@ -220,6 +268,33 @@ sub _load_section {
 	}
 
 	return;
+}
+
+sub _look_for_structured_item {
+	my ($self, $item, $property) = @_;
+
+	if (! defined $item) {
+		return;
+	}
+
+	# XXX What about multiple values.
+	# XXX In multiple languages?
+	my $item_value;
+
+	foreach my $statement (@{$item->statements}) {
+		my $snak = $statement->snak;
+		my $datavalue = $snak->datavalue;
+		if ($snak->property ne $property) {
+			next;
+		}
+		my $value = $datavalue->value;
+		if (defined $value) {
+			$item_value = $value;
+			last;
+		}
+	}
+
+	return $item_value;
 }
 
 sub _uploader_wm_username {
