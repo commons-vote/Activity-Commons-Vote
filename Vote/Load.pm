@@ -106,6 +106,62 @@ sub load {
 	return;
 }
 
+sub load_commons_image {
+	my ($self, $commons_name) = @_;
+
+	# First upload revision.
+	my $image_first_rev_hr = $self->{'_fetcher'}->image_upload_revision($commons_name);
+	$self->_verbose("Fetch first revision for image '$commons_name'.");
+
+	# Extra info.
+	my $image_info_hr = $self->{'_fetcher'}->image_info($commons_name);
+	$self->_verbose("Fetch image info for image '$commons_name'.");
+
+	# Structured data.
+	my $struct_data = $self->{'_fetcher'}->image_structured_data('M'.$image_info_hr->{'pageid'});
+	$self->_verbose("Fetch image structured data for image '$commons_name'.");
+	my $license_qid = $self->_look_for_structured_item($struct_data, 'P275');
+	my $license;
+	if (defined $license_qid) {
+		$license = $self->_license_text($license_qid);
+		$self->_verbose("Found license in structured data for image '$commons_name' (".$license->text.').');
+	}
+	# TODO Look for inception (or other property for created at?).
+
+	# Fetch or create uploader.
+	my $uploader = $self->_uploader_wm_username($image_first_rev_hr->{'user'});
+	$self->_verbose("Fetch or create uploader record for ".
+		"Wikimedia user '$image_first_rev_hr->{'user'}'.");
+
+	# Find or create image.
+	# YYYY-MM-DD HH:MM:SS
+	my $dt_created = eval {
+		$self->_commons_ts2_to_dt($image_info_hr->{'datetime_created'}, $commons_name);
+	};
+	if ($EVAL_ERROR) {
+		$self->_verbose($EVAL_ERROR.': '.$commons_name);
+		next;
+	}
+	my $image = $self->{'backend'}->save_image(
+		Data::Commons::Vote::Image->new(
+			'comment' => $image_info_hr->{'comment'},
+			'commons_name' => $commons_name,
+			'created_by' => $self->{'creator'},
+			'dt_created' => $dt_created,
+			# YYYY-MM-DDTHH:MM:SS
+			'dt_uploaded' => $self->_commons_ts_to_dt($image_first_rev_hr->{'timestamp'}),
+			'height' => $image_info_hr->{'height'},
+			'page_id' => $image_info_hr->{'pageid'},
+			'size' => $image_info_hr->{'size'},
+			'uploader' => $uploader,
+			'width' => $image_info_hr->{'width'},
+			defined $license ? ('license_obj' => $license) : (),
+		),
+	);
+	$self->_verbose("Save image '$commons_name'.");
+
+	return $image;
+}
 
 sub _commons_ts_to_dt {
 	my ($self, $ts, $image) = @_;
@@ -201,60 +257,7 @@ sub _load_section {
 		}
 		$self->_verbose("Fetch images in Wikimedia Commons category '$category'.");
 		foreach my $image_hr (@images) {
-
-			# First upload revision.
-			my $image_first_rev_hr = $self->{'_fetcher'}
-				->image_upload_revision($image_hr->{'title'});
-			$self->_verbose("Fetch first revision for image '$image_hr->{'title'}'.");
-
-			# Extra info.
-			my $image_info_hr = $self->{'_fetcher'}
-				->image_info($image_hr->{'title'});
-			$self->_verbose("Fetch image info for image '$image_hr->{'title'}'.");
-
-			# Structured data.
-			my $struct_data = $self->{'_fetcher'}->image_structured_data('M'.$image_info_hr->{'pageid'});
-			$self->_verbose("Fetch image structured data for image '$image_hr->{'title'}'.");
-			my $license_qid = $self->_look_for_structured_item($struct_data, 'P275');
-			my $license;
-			if (defined $license_qid) {
-				$license = $self->_license_text($license_qid);
-				$self->_verbose("Found license in structured data for image '$image_hr->{'title'}' (".$license->text.').');
-			}
-			# TODO Look for inception (or other property for created at?).
-
-			# Fetch or create uploader.
-			my $uploader = $self->_uploader_wm_username(
-				$image_first_rev_hr->{'user'});
-			$self->_verbose("Fetch or create uploader record for ".
-				"Wikimedia user '$image_first_rev_hr->{'user'}'.");
-
-			# Find or create image.
-			# YYYY-MM-DD HH:MM:SS
-			my $dt_created = eval {
-				$self->_commons_ts2_to_dt($image_info_hr->{'datetime_created'}, $image_hr->{'title'});
-			};
-			if ($EVAL_ERROR) {
-				$self->_verbose($EVAL_ERROR.': '.$image_hr->{'title'});
-				next;
-			}
-			my $image = $self->{'backend'}->save_image(
-				Data::Commons::Vote::Image->new(
-					'comment' => $image_info_hr->{'comment'},
-					'commons_name' => $image_hr->{'title'},
-					'created_by' => $self->{'creator'},
-					'dt_created' => $dt_created,
-					# YYYY-MM-DDTHH:MM:SS
-					'dt_uploaded' => $self->_commons_ts_to_dt($image_first_rev_hr->{'timestamp'}),
-					'height' => $image_info_hr->{'height'},
-					'page_id' => $image_info_hr->{'pageid'},
-					'size' => $image_info_hr->{'size'},
-					'uploader' => $uploader,
-					'width' => $image_info_hr->{'width'},
-					defined $license ? ('license_obj' => $license) : (),
-				),
-			);
-			$self->_verbose("Save image '$image_hr->{'title'}'.");
+			my $image = $self->load_commons_image($image_hr->{'title'});
 
 			$self->{'backend'}->save_section_image(
 				Data::Commons::Vote::SectionImage->new(
