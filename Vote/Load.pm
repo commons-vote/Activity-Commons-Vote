@@ -191,9 +191,9 @@ sub _load_section {
 				$self->_verbose($EVAL_ERROR.': '.$image_hr->{'title'});
 				next;
 			}
-			# TODO Store comment
 			my $image = $self->{'backend'}->save_image(
 				Data::Commons::Vote::Image->new(
+					'comment' => $image_info_hr->{'comment'},
 					'commons_name' => $image_hr->{'title'},
 					'created_by' => $self->{'creator'},
 					'dt_created' => $dt_created,
