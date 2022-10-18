@@ -4,7 +4,8 @@ TODO
 2. Vystup Validation::check_image_created() bude to datoveho objektu.
 6. Rename delete competition to better name. I could delete section or whatever.
 7. Rewrite to Wikibase::Item::Search.
-8.
+8. Rename Load::load() to Load::load_competition()
+9.
 
 Applied
 =======
