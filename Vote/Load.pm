@@ -200,6 +200,7 @@ sub _load_section {
 					# YYYY-MM-DDTHH:MM:SS
 					'dt_uploaded' => $self->_commons_ts_to_dt($image_first_rev_hr->{'timestamp'}),
 					'height' => $image_info_hr->{'height'},
+					'page_id' => $image_info_hr->{'pageid'},
 					'size' => $image_info_hr->{'size'},
 					'uploader' => $uploader,
 					'width' => $image_info_hr->{'width'},
