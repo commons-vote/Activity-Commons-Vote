@@ -131,9 +131,12 @@ sub load_commons_image {
 	# TODO Look for inception (or other property for created at?).
 
 	# Fetch or create uploader.
-	my $uploader = $self->_uploader_wm_username($image_first_rev_hr->{'user'});
-	$self->_verbose("Fetch or create uploader record for ".
-		"Wikimedia user '$image_first_rev_hr->{'user'}'.");
+	my $uploader;
+	if (exists $image_first_rev_hr->{'user'}) {
+		$uploader = $self->_uploader_wm_username($image_first_rev_hr->{'user'});
+		$self->_verbose("Fetch or create uploader record for ".
+			"Wikimedia user '$image_first_rev_hr->{'user'}'.");
+	}
 
 	# Find or create image.
 	# YYYY-MM-DD HH:MM:SS
