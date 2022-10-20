@@ -10,6 +10,7 @@ use Data::Commons::Vote::License;
 use Data::Commons::Vote::Person;
 use Data::Commons::Vote::SectionImage;
 use DateTime;
+use DateTime::Format::ISO8601;
 use English;
 use Error::Pure qw(err);
 use Scalar::Util qw(blessed);
@@ -128,7 +129,25 @@ sub load_commons_image {
 		$license = $self->_license_text($license_qid);
 		$self->_verbose("Found license in structured data for image '$commons_name' (".$license->text.').');
 	}
-	# TODO Look for inception (or other property for created at?).
+
+	# Fetch inception.
+	my $inception = $self->_look_for_structured_item($struct_data, 'P571');
+	my $dt_created;
+	if (defined $inception) {
+
+		# Strip + on begin.
+		if ($inception =~ m/^\+(.*)$/ms) {
+			$inception = $1;
+		}
+		$dt_created = eval {
+			DateTime::Format::ISO8601->parse_datetime($inception);
+		};
+		if ($EVAL_ERROR) {
+			$self->_verbose($EVAL_ERROR.': '.$commons_name);
+		} else {
+			$self->_verbose("Found inception in structured data for image '$commons_name' (".$dt_created.').');
+		}
+	}
 
 	# Fetch or create uploader.
 	my $uploader;
@@ -138,15 +157,18 @@ sub load_commons_image {
 			"Wikimedia user '$image_first_rev_hr->{'user'}'.");
 	}
 
-	# Find or create image.
-	# YYYY-MM-DD HH:MM:SS
-	my $dt_created = eval {
-		$self->_commons_ts2_to_dt($image_info_hr->{'datetime_created'}, $commons_name);
-	};
-	if ($EVAL_ERROR) {
-		$self->_verbose($EVAL_ERROR.': '.$commons_name);
-		next;
+	if (! defined $dt_created && defined $image_info_hr->{'datetime_created'}) {
+		# YYYY-MM-DD HH:MM:SS
+		$dt_created = eval {
+			$self->_commons_ts2_to_dt($image_info_hr->{'datetime_created'}, $commons_name);
+		};
+		if ($EVAL_ERROR) {
+			$self->_verbose($EVAL_ERROR.': '.$commons_name);
+		} else {
+			$self->_verbose("Parse created date from 'datetime_created' field.");
+		}
 	}
+
 	my $image = $self->{'backend'}->save_image(
 		Data::Commons::Vote::Image->new(
 			'comment' => substr($image_info_hr->{'comment'}, 0, 1000),
