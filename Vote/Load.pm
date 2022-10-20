@@ -149,7 +149,7 @@ sub load_commons_image {
 	}
 	my $image = $self->{'backend'}->save_image(
 		Data::Commons::Vote::Image->new(
-			'comment' => $image_info_hr->{'comment'},
+			'comment' => substr($image_info_hr->{'comment'}, 0, 1000),
 			'commons_name' => $commons_name,
 			'created_by' => $self->{'creator'},
 			'dt_created' => $dt_created,
