@@ -120,6 +120,8 @@ sub load_commons_image {
 	# Structured data.
 	my $struct_data = $self->{'_fetcher'}->image_structured_data('M'.$image_info_hr->{'pageid'});
 	$self->_verbose("Fetch image structured data for image '$commons_name'.");
+
+	# Fetch license.
 	my $license_qid = $self->_look_for_structured_item($struct_data, 'P275');
 	my $license;
 	if (defined $license_qid) {
