@@ -149,6 +149,14 @@ sub load_commons_image {
 		}
 	}
 
+	# Fetch creator.
+	my $author;
+	my $creator = $self->_look_for_structured_item($struct_data, 'P170');
+	if (defined $creator) {
+		$author = $self->_human_name($creator);
+		$self->_verbose("Found creator in structured data for image '$commons_name' (".$author.').');
+	}
+
 	# Fetch or create uploader.
 	my $uploader;
 	if (exists $image_first_rev_hr->{'user'}) {
@@ -171,6 +179,7 @@ sub load_commons_image {
 
 	my $image = $self->{'backend'}->save_image(
 		Data::Commons::Vote::Image->new(
+			defined $author ? ('author' => $author) : (),
 			'comment' => substr($image_info_hr->{'comment'}, 0, 1000),
 			'commons_name' => $commons_name,
 			'created_by' => $self->{'creator'},
@@ -235,6 +244,27 @@ sub _commons_ts2_to_dt {
 	}
 
 	return $dt;
+}
+
+sub _human_name {
+	my ($self, $human_qid) = @_;
+
+	my $human_name;
+	my $item = $self->{'_wikibase_api'}->get_item($human_qid);
+	if ($item) {
+		my $label_ar = $item->labels;
+		foreach my $label (@{$label_ar}) {
+			# XXX language.
+			if (defined $label->value) {
+				$human_name = $label->value;
+				last;
+			}
+		}
+	} else {
+		return;
+	}
+
+	return $human_name;
 }
 
 sub _license_text {
