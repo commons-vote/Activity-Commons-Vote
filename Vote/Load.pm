@@ -318,10 +318,10 @@ sub _look_for_structured_item {
 
 	foreach my $statement (@{$item->statements}) {
 		my $snak = $statement->snak;
-		my $datavalue = $snak->datavalue;
-		if ($snak->property ne $property) {
+		if ($snak->snaktype ne 'value' || $snak->property ne $property) {
 			next;
 		}
+		my $datavalue = $snak->datavalue;
 		my $value = $datavalue->value;
 		if (defined $value) {
 			$item_value = $value;
