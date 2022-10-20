@@ -230,6 +230,11 @@ sub _license_text {
 		} else {
 			return;
 		}
+		if (! $title) {
+			err 'No license text.',
+				'Wikidata QID', $license_qid,
+			;
+		}
 
 		$license = $self->{'backend'}->save_license(
 			Data::Commons::Vote::License->new(
