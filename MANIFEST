@@ -19,6 +19,8 @@ t/Activity-Commons-Vote-Delete/01-use.t
 t/Activity-Commons-Vote-Delete/02-version.t
 t/Activity-Commons-Vote-Export/01-use.t
 t/Activity-Commons-Vote-Export/02-version.t
+t/Activity-Commons-Vote-Import/01-use.t
+t/Activity-Commons-Vote-Import/02-version.t
 t/Activity-Commons-Vote-Load/01-use.t
 t/Activity-Commons-Vote-Load/02-version.t
 t/Activity-Commons-Vote-Stats/01-use.t
@@ -30,6 +32,7 @@ t/Activity-Commons-Vote/02-version.t
 Vote.pm
 Vote/Delete.pm
 Vote/Export.pm
+Vote/Import.pm
 Vote/Load.pm
 Vote/Stats.pm
 Vote/Validation.pm
@@ -37,6 +40,8 @@ xt/Activity-Commons-Vote-Delete/01-pod_coverage.t
 xt/Activity-Commons-Vote-Delete/02-pod.t
 xt/Activity-Commons-Vote-Export/01-pod_coverage.t
 xt/Activity-Commons-Vote-Export/02-pod.t
+xt/Activity-Commons-Vote-Import/01-pod_coverage.t
+xt/Activity-Commons-Vote-Import/02-pod.t
 xt/Activity-Commons-Vote-Load/01-pod_coverage.t
 xt/Activity-Commons-Vote-Load/02-pod.t
 xt/Activity-Commons-Vote-Stats/01-pod_coverage.t
