@@ -13,6 +13,7 @@ use DateTime;
 use DateTime::Format::ISO8601;
 use English;
 use Error::Pure qw(err);
+use HTML::Strip;
 use Scalar::Util qw(blessed);
 use Unicode::UTF8 qw(encode_utf8);
 use Wikibase::API;
@@ -64,6 +65,9 @@ sub new {
 	$self->{'_wikibase_api'} = Wikibase::API->new(
 		'mediawiki_site' => 'www.wikidata.org',
 	);
+
+	# HTML strip object.
+	$self->{'_html_strip'} = HTML::Strip->new;
 
 	# Log message.
 	$self->{'log'} = [];
@@ -177,10 +181,14 @@ sub load_commons_image {
 		}
 	}
 
+	# Fix comment.
+	my $comment = $self->{'_html_strip'}->parse(substr($image_info_hr->{'comment'}, 0, 1000));
+	$self->{'_html_strip'}->eof;
+
 	my $image = $self->{'backend'}->save_image(
 		Data::Commons::Vote::Image->new(
 			defined $author ? ('author' => $author) : (),
-			'comment' => substr($image_info_hr->{'comment'}, 0, 1000),
+			'comment' => $comment,
 			'commons_name' => $commons_name,
 			'created_by' => $self->{'creator'},
 			'dt_created' => $dt_created,

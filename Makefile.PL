@@ -30,6 +30,7 @@ requires 'DateTime::Format::Strptime' => 0;
 requires 'DateTime::Format::ISO8601' => 0;
 requires 'English' => 0;
 requires 'Error::Pure' => 0;
+requires 'HTML::Strip' => 0;
 requires 'Scalar::Util' => 0;
 requires 'Unicode::UTF8' => 0;
 requires 'Wikibase::API' => 0;
