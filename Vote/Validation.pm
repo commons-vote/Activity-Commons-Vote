@@ -5,6 +5,9 @@ use warnings;
 
 use Class::Utils qw(set_params);
 use Commons::Link;
+use DateTime;
+use Error::Pure qw(err);
+use Scalar::Util qw(blessed);
 
 our $VERSION = 0.01;
 
@@ -14,29 +17,69 @@ sub new {
 	# Create object.
 	my $self = bless {}, $class;
 
-	$self->{'schema'} = undef;
+	# Backend.
+	$self->{'backend'} = undef;
+
+	# Creator.
+	$self->{'creator'} = undef;
+
+	# Verbose print callback.
+	$self->{'verbose_cb'} = undef;
 
 	# Process parameters.
 	set_params($self, @params);
+
+	# DB backend.
+	if (! defined $self->{'backend'}) {
+		err "Parameter 'backend' is required.";
+	}
+	if (! blessed($self->{'backend'}) || ! $self->{'backend'}->isa('Backend::DB::Commons::Vote')) {
+		err "Parameter 'backend' must be a 'Backend::DB::Commons::Vote' object.";
+	}
+
+	if (! defined $self->{'creator'}) {
+		err "Parameter 'creator' is required.";
+	}
+
+	# Check verbose code.
+	if (defined $self->{'verbose_cb'} && ref $self->{'verbose_cb'} ne 'CODE') {
+		err "Parameter 'verbose_cb' must be a code.";
+	}
 
 	$self->{'_commons_link'} = Commons::Link->new(
 		'utf-8' => 0,
 	);
 
+	$self->{'schema'} = $self->{'backend'}->schema;
+
+	# Log message.
+	$self->{'log'} = [];
+
 	return $self;
 }
 
 sub check_author_photos {
-	my ($self, $number_of_photos) = @_;
+	my ($self, $competition, $validation) = @_;
+
+	$self->_verbose("Validation '".$validation->validation_type->type."'.");
 
 	my $authors_hr = {};
-	foreach my $value ($self->{'schema'}->resultset('Image')->search) {
-		$authors_hr->{$value->uploader->wm_username}++;
+	foreach my $section (@{$competition->sections}) {
+		foreach my $image (@{$section->images}) {
+			my $uploader = $image->uploader;
+			$authors_hr->{$uploader->wm_username}++;
+		}
 	}
+
+	$self->_verbose('Options.');
+	my $number_of_photos = $validation->options->[0]->value;
+	$self->_verbose('  - '.$validation->options->[0]->validation_option->description.': '.$number_of_photos);
 
 	foreach my $author (sort keys %{$authors_hr}) {
 		if ($authors_hr->{$author} > $number_of_photos) {
-			print "Author '$author': $authors_hr->{$author}\n";
+			$self->_verbose("Author '$author': $authors_hr->{$author}");
+
+			# Report photos by author
 			my $person = $self->{'schema'}->resultset('Person')->search({
 				'wm_username' => $author,
 			})->single;
@@ -44,112 +87,267 @@ sub check_author_photos {
 				'uploader_id' => $person->person_id,
 			});
 			foreach my $image (@images) {
-				print "\t".$self->{'_commons_link'}->mw_link($image->image)."\n";
+				$self->_verbose("\t".$self->{'_commons_link'}->mw_link($image->image));
 			}
 		}
 	}
+
+	$self->_validation_log($competition, 'validation_'.$validation->validation_type->type);
 
 	return;
 }
 
 sub check_image_dimension {
-	my ($self, $width, $height) = @_;
+	my ($self, $competition, $validation) = @_;
 
-	my @rs = $self->{'schema'}->resultset('Image')->search({
-		-or => [
-			'width' => {'<', $width},
-			'height' => {'<', $height},
-		],
-	});
+	$self->_verbose("Validation '".$validation->validation_type->type."'.");
 
-	foreach my $rs (@rs) {
-		print $rs->width.'x'.$rs->height.': '.$self->{'_commons_link'}->link($rs->image)."\n";
+	$self->_verbose('Options.');
+	my ($min_width, $min_height);
+	foreach my $option (@{$validation->options}) {
+		if ($option->validation_option->option eq 'image_height') {
+			$min_height = $option->value;
+			$self->_verbose('  - '.$option->validation_option->description.': '.$min_height);
+		} elsif ($option->validation_option->option eq 'image_width') {
+			$min_width = $option->value;
+			$self->_verbose('  - '.$option->validation_option->description.': '.$min_width);
+		} else {
+			err "Bad validation option for check image dimension.",
+				'Option', $option->validation_option->option,
+			;
+		}
 	}
+
+	foreach my $section (@{$competition->sections}) {
+		foreach my $image (@{$section->images}) {
+			if ($image->width < $min_width || $image->height < $min_height) {
+				$self->_verbose($image->width.'x'.$image->height.': '.
+					$self->{'_commons_link'}->mw_link($image->commons_name));
+			}
+		}
+	}
+
+	$self->_validation_log($competition, 'validation_'.$validation->validation_type->type);
 
 	return;
 }
 
-sub check_image_dimension_short {
-	my ($self, $min_dimension) = @_;
+sub check_image_dimensions_short {
+	my ($self, $competition, $validation) = @_;
 
-	my @rs = $self->{'schema'}->resultset('Image')->search({
-		-or => [
-			'width' => {'<', $min_dimension},
-			'height' => {'<', $min_dimension},
-		],
-	});
+	$self->_verbose("Validation '".$validation->validation_type->type."'.");
 
-	foreach my $rs (@rs) {
-		print $rs->width.'x'.$rs->height.': '.$self->{'_commons_link'}->link($rs->image)."\n";
+	$self->_verbose('Options.');
+	my $min_dimension = $validation->options->[0]->value;
+	$self->_verbose('  - '.$validation->options->[0]->validation_option->description.': '.$min_dimension);
+
+	foreach my $section (@{$competition->sections}) {
+		foreach my $image (@{$section->images}) {
+			if ($image->width < $min_dimension || $image->height < $min_dimension) {
+				$self->_verbose($image->width.'x'.$image->height.': '.
+					$self->{'_commons_link'}->mw_link($image->commons_name));
+			}
+		}
 	}
+
+	$self->_validation_log($competition, 'validation_'.$validation->validation_type->type);
 
 	return;
 }
 
 # Check if each image is in one section only.
 sub check_image_in_one_section {
-	my $self = shift;
+	my ($self, $competition, $validation) = @_;
+
+	$self->_verbose("Validation '".$validation->validation_type->type."'.");
 
 	my $image_hr = {};
-	foreach my $image ($self->{'schema'}->resultset('Image')->search) {
-		$image_hr->{$image->image}++;
+	foreach my $section (@{$competition->sections}) {
+		foreach my $image (@{$section->images}) {
+			$image_hr->{$image->commons_name}++;
+		}
 	}
 
 	foreach my $image (keys %{$image_hr}) {
 		if ($image_hr->{$image} > 1) {
-			print "Image '$image' is in more sections.\n";
+			$self->_verbose("Image '$image' is in more sections.");
+		}
+	}
+
+	$self->_validation_log($competition, 'validation_'.$validation->validation_type->type);
+
+	return;
+}
+
+sub check_image_size {
+	my ($self, $competition, $validation) = @_;
+
+	$self->_verbose("Validation '".$validation->validation_type->type."'.");
+
+	$self->_verbose('Options.');
+	my $min_size = $validation->options->[0]->value;
+	$self->_verbose('  - '.$validation->options->[0]->validation_option->description.': '.$min_size);
+
+	foreach my $section (@{$competition->sections}) {
+		foreach my $image (@{$section->images}) {
+			if ($image->size < $min_size) {
+				$self->_verbose($image->size.': '.
+					$self->{'_commons_link'}->mw_link($image->commons_name));
+			}
+		}
+	}
+
+	$self->_validation_log($competition, 'validation_'.$validation->validation_type->type);
+
+	return;
+}
+
+sub check_image_created {
+	my ($self, $competition, $validation) = @_;
+
+	$self->_verbose("Validation '".$validation->validation_type->type."'.");
+
+	$self->_verbose('Options.');
+	my ($dt_start, $dt_end);
+	foreach my $option (@{$validation->options}) {
+		if ($option->validation_option->option eq 'created_from') {
+			$dt_start = $self->_date_option($option->value);;
+			$self->_verbose('  - '.$option->validation_option->description.': '.$dt_start);
+		} elsif ($option->validation_option->option eq 'created_to') {
+			$dt_end = $self->_date_option($option->value);
+			$self->_verbose('  - '.$option->validation_option->description.': '.$dt_end);
+		} else {
+			err "Bad validation option for check date of image creation.",
+				'Option', $option->validation_option->option,
+			;
+		}
+	}
+
+	foreach my $section (@{$competition->sections}) {
+		foreach my $image (@{$section->images}) {
+			if (DateTime->compare($image->dt_created, $dt_start) == -1
+				|| DateTime->compare($dt_end, $image->dt_created) == -1) {
+
+				$self->_verbose($image->dt_created.': '.
+					$self->{'_commons_link'}->mw_link($image->commons_name));
+			}
+		}
+	}
+
+	$self->_validation_log($competition, 'validation_'.$validation->validation_type->type);
+
+	return;
+}
+
+sub check_image_uploaded {
+	my ($self, $competition, $validation) = @_;
+
+	$self->_verbose("Validation '".$validation->validation_type->type."'.");
+
+	my ($dt_start, $dt_end);
+	foreach my $option (@{$validation->options}) {
+		if ($option->validation_option->option eq 'uploaded_from') {
+			$dt_start = $self->_date_option($option->value);
+			$self->_verbose('  - '.$option->validation_option->description.': '.$dt_start);
+		} elsif ($option->validation_option->option eq 'uploaded_to') {
+			$dt_end = $self->_date_option($option->value);
+			$self->_verbose('  - '.$option->validation_option->description.': '.$dt_end);
+		} else {
+			err "Bad validation option for check date of image creation.",
+				'Option', $option->validation_option->option,
+			;
+		}
+	}
+
+	foreach my $section (@{$competition->sections}) {
+		foreach my $image (@{$section->images}) {
+			if (DateTime->compare($image->dt_uploaded, $dt_start) == -1
+				|| DateTime->compare($dt_end, $image->dt_uploaded) == -1) {
+
+				$self->_verbose($image->dt_uploaded.': '.
+					$self->{'_commons_link'}->mw_link($image->commons_name));
+			}
+		}
+	}
+
+	$self->_validation_log($competition, 'validation_'.$validation->validation_type->type);
+
+	return;
+}
+
+sub validate {
+	my ($self, $competition_id) = @_;
+
+	my $competition = $self->{'backend'}->fetch_competition($competition_id);
+
+	my @validations = @{$competition->validations};
+	foreach my $validation (@validations) {
+		my $validation_type = $validation->validation_type->type;
+		if ($validation_type eq 'check_author_photos') {
+			$self->check_author_photos($competition, $validation);
+		} elsif ($validation_type eq 'check_image_dimension') {
+			$self->check_image_dimension($competition, $validation);
+		} elsif ($validation_type eq 'check_image_dimensions_short') {
+			$self->check_image_dimensions_short($competition, $validation);
+		} elsif ($validation_type eq 'check_image_in_one_section') {
+			$self->check_image_in_one_section($competition, $validation);
+		} elsif ($validation_type eq 'check_image_size') {
+			$self->check_image_size($competition, $validation);
+		} elsif ($validation_type eq 'check_image_created') {
+			$self->check_image_created($competition, $validation);
+		} elsif ($validation_type eq 'check_image_uploaded') {
+			$self->check_image_uploaded($competition, $validation);
+		} else {
+			err "Validation type '$validation_type' doesn't supported.";
 		}
 	}
 
 	return;
 }
 
-sub check_image_size {
-	my ($self, $min_size) = @_;
+sub _date_option {
+	my ($self, $option_date) = @_;
 
-	my @rs = $self->{'schema'}->resultset('Image')->search({
-		'size' => {'<', $min_size},
-	});
+	my ($year, $month, $day) = split m/-/ms, $option_date;
+	my $dt = DateTime->new(
+		'day' => $day,
+		'month' => $month,
+		'year' => $year,
+	);
 
-	foreach my $rs (@rs) {
-		print $rs->size.': '.$self->{'_commons_link'}->link($rs->image)."\n";
-	}
+	return $dt;
+}
+
+sub _validation_log {
+	my ($self, $competition, $validation_log_type) = @_;
+
+	# Log type.
+	my $log_type = $self->{'backend'}->fetch_log_type_name($validation_log_type);
+
+	# Save log.
+	$self->{'backend'}->save_log(
+		Data::Commons::Vote::Log->new(
+			'competition' => $competition,
+			'created_by' => $self->{'creator'},
+			'log' => (join "\n", @{$self->{'log'}}),
+			'log_type' => $log_type,
+		),
+	);
+
+	# Cleanup log.
+	$self->{'log'} = [];
 
 	return;
 }
 
-sub check_image_created {
-	my ($self, $dt_start, $dt_end) = @_;
+sub _verbose {
+	my ($self, $message) = @_;
 
-	my $dtf = $self->{'schema'}->storage->datetime_parser;
-	my @rs = $self->{'schema'}->resultset('Image')->search({
-		-or => [
-			'image_created' => {'<', $dtf->format_datetime($dt_start)},
-			'image_created' => {'>', $dtf->format_datetime($dt_end)},
-		],
-	});
-
-	foreach my $rs (@rs) {
-		print $rs->image_created.': '.$self->{'_commons_link'}->link($rs->image)."\n";
+	if (defined $self->{'verbose_cb'}) {
+		$self->{'verbose_cb'}->($message);
 	}
 
-	return;
-}
-
-sub check_image_uploaded {
-	my ($self, $dt_start, $dt_end) = @_;
-
-	my $dtf = $self->{'schema'}->storage->datetime_parser;
-	my @rs = $self->{'schema'}->resultset('Image')->search({
-		-or => [
-			'image_uploaded' => {'<', $dtf->format_datetime($dt_start)},
-			'image_uploaded' => {'>', $dtf->format_datetime($dt_end)},
-		],
-	});
-
-	foreach my $rs (@rs) {
-		print $rs->image_uploaded.': '.$self->{'_commons_link'}->link($rs->image)."\n";
-	}
+	push @{$self->{'log'}}, $message;
 
 	return;
 }
