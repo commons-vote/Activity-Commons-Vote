@@ -374,11 +374,7 @@ sub _uploader_wm_username {
 	my ($self, $wm_username) = @_;
 
 	if (! exists $self->{'uploaders'}->{'wm_username'}->{$wm_username}) {
-		my @people = $self->{'backend'}->fetch_people({'wm_username' => $wm_username});
-		if (@people > 1) {
-			err "Bad identifier 'wm_username'. Has multiple values.";
-		}
-		my $uploader = $people[0];
+		my $uploader = $self->{'backend'}->fetch_person({'wm_username' => $wm_username});
 		if (! $uploader) {
 
 			# Timestamp of first upload.
