@@ -5,6 +5,7 @@ use warnings;
 
 use Class::Utils qw(set_params);
 use Commons::Link;
+use Data::Commons::Vote::ValidationBad;
 use DateTime;
 use Error::Pure qw(err);
 use Scalar::Util qw(blessed);
@@ -80,13 +81,22 @@ sub check_author_photos {
 			$self->_verbose("Author '$author': $authors_hr->{$author}");
 
 			# Report photos by author
+			# XXX To data object.
 			my $person = $self->{'schema'}->resultset('Person')->search({
 				'wm_username' => $author,
 			})->single;
+			# XXX To data object.
 			my @images = $self->{'schema'}->resultset('Image')->search({
 				'uploader_id' => $person->person_id,
 			});
 			foreach my $image (@images) {
+				$self->{'backend'}->save_validation_bad(Data::Commons::Vote::ValidationBad->new(
+					'competition' => $competition,
+					'created_by' => $self->{'creator'},
+					# XXX To data object.
+					'image' => $self->{'backend'}->{'_transform'}->image_db2obj($image),
+					'validation_type' => $validation->validation_type,
+				));
 				$self->_verbose("\t".$self->{'_commons_link'}->mw_link($image->image));
 			}
 		}
@@ -118,9 +128,24 @@ sub check_image_dimension {
 		}
 	}
 
+	my $processed_images_hr = {};
 	foreach my $section (@{$competition->sections}) {
 		foreach my $image (@{$section->images}) {
+
+			# Skip if image is duplicated.
+			if (! exists $processed_images_hr->{$image->id}) {
+				$processed_images_hr->{$image->id} = 1;
+			} else {
+				next;
+			}
+
 			if ($image->width < $min_width || $image->height < $min_height) {
+				$self->{'backend'}->save_validation_bad(Data::Commons::Vote::ValidationBad->new(
+					'competition' => $competition,
+					'created_by' => $self->{'creator'},
+					'image' => $image,
+					'validation_type' => $validation->validation_type,
+				));
 				$self->_verbose($image->width.'x'.$image->height.': '.
 					$self->{'_commons_link'}->mw_link($image->commons_name));
 			}
@@ -141,9 +166,24 @@ sub check_image_dimensions_short {
 	my $min_dimension = $validation->options->[0]->value;
 	$self->_verbose('  - '.$validation->options->[0]->validation_option->description.': '.$min_dimension);
 
+	my $processed_images_hr = {};
 	foreach my $section (@{$competition->sections}) {
 		foreach my $image (@{$section->images}) {
+
+			# Skip if image is duplicated.
+			if (! exists $processed_images_hr->{$image->id}) {
+				$processed_images_hr->{$image->id} = 1;
+			} else {
+				next;
+			}
+
 			if ($image->width < $min_dimension || $image->height < $min_dimension) {
+				$self->{'backend'}->save_validation_bad(Data::Commons::Vote::ValidationBad->new(
+					'competition' => $competition,
+					'created_by' => $self->{'creator'},
+					'image' => $image,
+					'validation_type' => $validation->validation_type,
+				));
 				$self->_verbose($image->width.'x'.$image->height.': '.
 					$self->{'_commons_link'}->mw_link($image->commons_name));
 			}
@@ -164,12 +204,21 @@ sub check_image_in_one_section {
 	my $image_hr = {};
 	foreach my $section (@{$competition->sections}) {
 		foreach my $image (@{$section->images}) {
-			$image_hr->{$image->commons_name}++;
+			if (! exists $image_hr->{$image->commons_name}->{'object'}) {
+				$image_hr->{$image->commons_name}->{'object'} = $image;
+			}
+			$image_hr->{$image->commons_name}->{'count'}++;
 		}
 	}
 
 	foreach my $image (keys %{$image_hr}) {
-		if ($image_hr->{$image} > 1) {
+		if ($image_hr->{$image}->{'count'} > 1) {
+			$self->{'backend'}->save_validation_bad(Data::Commons::Vote::ValidationBad->new(
+				'competition' => $competition,
+				'created_by' => $self->{'creator'},
+				'image' => $image_hr->{$image}->{'object'},
+				'validation_type' => $validation->validation_type,
+			));
 			$self->_verbose("Image '$image' is in more sections.");
 		}
 	}
@@ -188,9 +237,24 @@ sub check_image_size {
 	my $min_size = $validation->options->[0]->value;
 	$self->_verbose('  - '.$validation->options->[0]->validation_option->description.': '.$min_size);
 
+	my $processed_images_hr = {};
 	foreach my $section (@{$competition->sections}) {
 		foreach my $image (@{$section->images}) {
+
+			# Skip if image is duplicated.
+			if (! exists $processed_images_hr->{$image->id}) {
+				$processed_images_hr->{$image->id} = 1;
+			} else {
+				next;
+			}
+
 			if ($image->size < $min_size) {
+				$self->{'backend'}->save_validation_bad(Data::Commons::Vote::ValidationBad->new(
+					'competition' => $competition,
+					'created_by' => $self->{'creator'},
+					'image' => $image,
+					'validation_type' => $validation->validation_type,
+				));
 				$self->_verbose($image->size.': '.
 					$self->{'_commons_link'}->mw_link($image->commons_name));
 			}
@@ -223,11 +287,26 @@ sub check_image_created {
 		}
 	}
 
+	my $processed_images_hr = {};
 	foreach my $section (@{$competition->sections}) {
 		foreach my $image (@{$section->images}) {
+
+			# Skip if image is duplicated.
+			if (! exists $processed_images_hr->{$image->id}) {
+				$processed_images_hr->{$image->id} = 1;
+			} else {
+				next;
+			}
+
 			if (DateTime->compare($image->dt_created, $dt_start) == -1
 				|| DateTime->compare($dt_end, $image->dt_created) == -1) {
 
+				$self->{'backend'}->save_validation_bad(Data::Commons::Vote::ValidationBad->new(
+					'competition' => $competition,
+					'created_by' => $self->{'creator'},
+					'image' => $image,
+					'validation_type' => $validation->validation_type,
+				));
 				$self->_verbose($image->dt_created.': '.
 					$self->{'_commons_link'}->mw_link($image->commons_name));
 			}
@@ -259,11 +338,26 @@ sub check_image_uploaded {
 		}
 	}
 
+	my $processed_images_hr = {};
 	foreach my $section (@{$competition->sections}) {
 		foreach my $image (@{$section->images}) {
+
+			# Skip if image is duplicated.
+			if (! exists $processed_images_hr->{$image->id}) {
+				$processed_images_hr->{$image->id} = 1;
+			} else {
+				next;
+			}
+
 			if (DateTime->compare($image->dt_uploaded, $dt_start) == -1
 				|| DateTime->compare($dt_end, $image->dt_uploaded) == -1) {
 
+				$self->{'backend'}->save_validation_bad(Data::Commons::Vote::ValidationBad->new(
+					'competition' => $competition,
+					'created_by' => $self->{'creator'},
+					'image' => $image,
+					'validation_type' => $validation->validation_type,
+				));
 				$self->_verbose($image->dt_uploaded.': '.
 					$self->{'_commons_link'}->mw_link($image->commons_name));
 			}
@@ -279,6 +373,11 @@ sub validate {
 	my ($self, $competition_id) = @_;
 
 	my $competition = $self->{'backend'}->fetch_competition($competition_id);
+
+	# Delete validations for competition.
+	$self->{'backend'}->delete_validation_bads({
+		'competition_id' => $competition->id,
+	});
 
 	my @validations = @{$competition->validations};
 	foreach my $validation (@validations) {
