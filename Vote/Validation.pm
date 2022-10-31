@@ -5,6 +5,7 @@ use warnings;
 
 use Class::Utils qw(set_params);
 use Commons::Link;
+use Data::Commons::Vote::Log;
 use Data::Commons::Vote::ValidationBad;
 use DateTime;
 use Error::Pure qw(err);
