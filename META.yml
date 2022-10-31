@@ -39,6 +39,7 @@ requires:
   English: 0
   Error::Pure: 0
   HTML::Strip: 0
+  List::Util: 0
   Scalar::Util: 0
   Unicode::UTF8: 0
   Wikibase::API: 0

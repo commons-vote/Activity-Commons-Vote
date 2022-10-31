@@ -9,6 +9,7 @@ use Data::Commons::Vote::Log;
 use Data::Commons::Vote::ValidationBad;
 use DateTime;
 use Error::Pure qw(err);
+use List::Util qw(max);
 use Scalar::Util qw(blessed);
 
 our $VERSION = 0.01;
@@ -108,6 +109,65 @@ sub check_author_photos {
 	return;
 }
 
+sub check_author_photos_in_section {
+	my ($self, $competition, $validation) = @_;
+
+	$self->_verbose("Validation '".$validation->validation_type->type."'.");
+
+	my $authors_hr = {};
+	foreach my $section (@{$competition->sections}) {
+		if (! exists $authors_hr->{$section->id}) {
+			$authors_hr->{$section->id} = {};
+		}
+		foreach my $image (@{$section->images}) {
+			my $uploader = $image->uploader;
+			$authors_hr->{$section->id}->{$uploader->wm_username}++;
+		}
+	}
+
+	$self->_verbose('Options.');
+	my $number_of_photos = $validation->options->[0]->value;
+	$self->_verbose('  - '.$validation->options->[0]->validation_option->description.': '.$number_of_photos);
+
+	my $actual_section;
+	foreach my $section_id (sort keys %{$authors_hr}) {
+		foreach my $author (sort keys %{$authors_hr->{$section_id}}) {
+			if ($authors_hr->{$section_id}->{$author} > $number_of_photos) {
+				if (! defined $actual_section) {
+					$actual_section = $section_id;
+					$self->_verbose("Section '$section_id':");
+				}
+				$self->_verbose("\tAuthor '$author': $authors_hr->{$section_id}->{$author}");
+
+				# Report photos by author
+				# XXX To data object.
+				my $person = $self->{'schema'}->resultset('Person')->search({
+					'wm_username' => $author,
+				})->single;
+				# XXX To data object.
+				my @images = $self->{'schema'}->resultset('Image')->search({
+					'uploader_id' => $person->person_id,
+				});
+				foreach my $image (@images) {
+					$self->{'backend'}->save_validation_bad(Data::Commons::Vote::ValidationBad->new(
+						'competition' => $competition,
+						'created_by' => $self->{'creator'},
+						# XXX To data object.
+						'image' => $self->{'backend'}->{'_transform'}->image_db2obj($image),
+						'validation_type' => $validation->validation_type,
+					));
+					$self->_verbose("\t\t".$self->{'_commons_link'}->mw_link($image->image));
+				}
+			}
+		}
+		$actual_section = undef;
+	}
+
+	$self->_validation_log($competition, 'validation_'.$validation->validation_type->type);
+
+	return;
+}
+
 sub check_image_dimension {
 	my ($self, $competition, $validation) = @_;
 
@@ -179,6 +239,45 @@ sub check_image_dimensions_short {
 			}
 
 			if ($image->width < $min_dimension || $image->height < $min_dimension) {
+				$self->{'backend'}->save_validation_bad(Data::Commons::Vote::ValidationBad->new(
+					'competition' => $competition,
+					'created_by' => $self->{'creator'},
+					'image' => $image,
+					'validation_type' => $validation->validation_type,
+				));
+				$self->_verbose($image->width.'x'.$image->height.': '.
+					$self->{'_commons_link'}->mw_link($image->commons_name));
+			}
+		}
+	}
+
+	$self->_validation_log($competition, 'validation_'.$validation->validation_type->type);
+
+	return;
+}
+
+sub check_image_dimensions_long {
+	my ($self, $competition, $validation) = @_;
+
+	$self->_verbose("Validation '".$validation->validation_type->type."'.");
+
+	$self->_verbose('Options.');
+	my $min_long_dimension = $validation->options->[0]->value;
+	$self->_verbose('  - '.$validation->options->[0]->validation_option->description.': '.$min_long_dimension);
+
+	my $processed_images_hr = {};
+	foreach my $section (@{$competition->sections}) {
+		foreach my $image (@{$section->images}) {
+
+			# Skip if image is duplicated.
+			if (! exists $processed_images_hr->{$image->id}) {
+				$processed_images_hr->{$image->id} = 1;
+			} else {
+				next;
+			}
+
+			my $max_dimension = max($image->width, $image->height);
+			if ($max_dimension < $min_long_dimension) {
 				$self->{'backend'}->save_validation_bad(Data::Commons::Vote::ValidationBad->new(
 					'competition' => $competition,
 					'created_by' => $self->{'creator'},
@@ -397,6 +496,10 @@ sub validate {
 			$self->check_image_created($competition, $validation);
 		} elsif ($validation_type eq 'check_image_uploaded') {
 			$self->check_image_uploaded($competition, $validation);
+		} elsif ($validation_type eq 'check_image_dimensions_long') {
+			$self->check_image_dimensions_long($competition, $validation);
+		} elsif ($validation_type eq 'check_author_photos_in_section') {
+			$self->check_author_photos_in_section($competition, $validation);
 		} else {
 			err "Validation type '$validation_type' doesn't supported.";
 		}
