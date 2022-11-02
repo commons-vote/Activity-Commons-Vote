@@ -4,7 +4,7 @@ TODO
 2. Vystup Validation::check_image_created() bude to datoveho objektu.
 6. Rename delete competition to better name. I could delete section or whatever.
 8. Rename Load::load() to Load::load_competition()
-9. Rewiew of loading of image (if exists, i cannot load).
+9. Review of loading of image (if exists, i cannot load).
 10. Check loading information in load_..._image. Could be a bad name or bad
 diacritics.
 11.
