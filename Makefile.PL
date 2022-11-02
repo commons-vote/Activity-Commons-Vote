@@ -35,6 +35,7 @@ requires 'List::Util' => 0;
 requires 'Scalar::Util' => 0;
 requires 'Unicode::UTF8' => 0;
 requires 'Wikibase::API' => 0;
+requires 'Wikibase::Datatype::Query' => 0;
 requires 'perl' => '5.8.0';
 resources 'bugtracker' => 'https://github.com/commons-vote/Activity-Commons-Vote/issues';
 resources 'homepage' => 'https://github.com/commons-vote/Activity-Commons-Vote';

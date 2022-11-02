@@ -17,6 +17,7 @@ use HTML::Strip;
 use Scalar::Util qw(blessed);
 use Unicode::UTF8 qw(encode_utf8);
 use Wikibase::API;
+use Wikibase::Datatype::Query;
 
 our $VERSION = 0.01;
 
@@ -65,6 +66,9 @@ sub new {
 	$self->{'_wikibase_api'} = Wikibase::API->new(
 		'mediawiki_site' => 'www.wikidata.org',
 	);
+
+	# Wikibase datatype query.
+	$self->{'_wikibase_query'} = Wikibase::Datatype::Query->new;
 
 	# HTML strip object.
 	$self->{'_html_strip'} = HTML::Strip->new;
@@ -127,7 +131,7 @@ sub load_commons_image {
 	$self->_verbose("Fetch image structured data for image '$commons_name'.");
 
 	# Fetch license.
-	my $license_qid = $self->_look_for_structured_item($struct_data, 'P275');
+	my $license_qid = $self->{'_wikibase_query'}->query($struct_data, 'P275');
 	my $license;
 	if (defined $license_qid) {
 		$license = $self->_license_text($license_qid);
@@ -135,7 +139,7 @@ sub load_commons_image {
 	}
 
 	# Fetch inception.
-	my $inception = $self->_look_for_structured_item($struct_data, 'P571');
+	my $inception = $self->{'_wikibase_query'}->query($struct_data, 'P571');
 	my $dt_created;
 	if (defined $inception) {
 
@@ -155,9 +159,10 @@ sub load_commons_image {
 
 	# Fetch creator.
 	my $author;
-	my $creator = $self->_look_for_structured_item($struct_data, 'P170');
+	my $creator = $self->{'_wikibase_query'}->query($struct_data, 'P170');
 	if (defined $creator) {
 		$author = $self->_human_name($creator);
+		# TODO Main train station prague.jpg
 		$self->_verbose("Found creator in structured data for image '$commons_name' (".$author.').');
 	}
 
@@ -285,8 +290,8 @@ sub _license_text {
 		my $item = $self->{'_wikibase_api'}->get_item($license_qid);
 		my ($title, $short_name);
 		if ($item) {
-			$title = $self->_look_for_structured_item($item, 'P1476');
-			$short_name = $self->_look_for_structured_item($item, 'P1813');
+			$title = $self->{'_wikibase_query'}->query($item, 'P1476');
+			$short_name = $self->{'_wikibase_query'}->query($item, 'P1813');
 		} else {
 			return;
 		}
@@ -341,33 +346,6 @@ sub _load_section {
 	}
 
 	return;
-}
-
-sub _look_for_structured_item {
-	my ($self, $item, $property) = @_;
-
-	if (! defined $item) {
-		return;
-	}
-
-	# XXX What about multiple values.
-	# XXX In multiple languages?
-	my $item_value;
-
-	foreach my $statement (@{$item->statements}) {
-		my $snak = $statement->snak;
-		if ($snak->snaktype ne 'value' || $snak->property ne $property) {
-			next;
-		}
-		my $datavalue = $snak->datavalue;
-		my $value = $datavalue->value;
-		if (defined $value) {
-			$item_value = $value;
-			last;
-		}
-	}
-
-	return $item_value;
 }
 
 sub _uploader_wm_username {
