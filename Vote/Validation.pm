@@ -70,7 +70,11 @@ sub check_author_photos {
 	foreach my $section (@{$competition->sections}) {
 		foreach my $image (@{$section->images}) {
 			my $uploader = $image->uploader;
-			$authors_hr->{$uploader->wm_username}++;
+			if (! exists $authors_hr->{$uploader->wm_username}->{'images'}) {
+				$authors_hr->{$uploader->wm_username}->{'images'} = [];
+			}
+			push @{$authors_hr->{$uploader->wm_username}->{'images'}}, [$section, $image];
+			$authors_hr->{$uploader->wm_username}->{'count'}++;
 		}
 	}
 
@@ -79,27 +83,19 @@ sub check_author_photos {
 	$self->_verbose('  - '.$validation->options->[0]->validation_option->description.': '.$number_of_photos);
 
 	foreach my $author (sort keys %{$authors_hr}) {
-		if ($authors_hr->{$author} > $number_of_photos) {
-			$self->_verbose("Author '$author': $authors_hr->{$author}");
+		if ($authors_hr->{$author}->{'count'} > $number_of_photos) {
+			$self->_verbose("Author '$author': $authors_hr->{$author}->{'count'}");
 
 			# Report photos by author
-			# XXX To data object.
-			my $person = $self->{'schema'}->resultset('Person')->search({
-				'wm_username' => $author,
-			})->single;
-			# XXX To data object.
-			my @images = $self->{'schema'}->resultset('Image')->search({
-				'uploader_id' => $person->person_id,
-			});
-			foreach my $image (@images) {
+			foreach my $section_image_ar (@{$authors_hr->{$author}->{'images'}}) {
 				$self->{'backend'}->save_validation_bad(Data::Commons::Vote::ValidationBad->new(
 					'competition' => $competition,
 					'created_by' => $self->{'creator'},
-					# XXX To data object.
-					'image' => $self->{'backend'}->{'_transform'}->image_db2obj($image),
+					'image' => $section_image_ar->[1],
+					'section' => $section_image_ar->[0],
 					'validation_type' => $validation->validation_type,
 				));
-				$self->_verbose("\t".$self->{'_commons_link'}->mw_link($image->image));
+				$self->_verbose("\t".$self->{'_commons_link'}->mw_link($section_image_ar->[1]->commons_name));
 			}
 		}
 	}
@@ -121,7 +117,11 @@ sub check_author_photos_in_section {
 		}
 		foreach my $image (@{$section->images}) {
 			my $uploader = $image->uploader;
-			$authors_hr->{$section->id}->{$uploader->wm_username}++;
+			if (! exists $authors_hr->{$section->id}->{$uploader->wm_username}->{'images'}) {
+				$authors_hr->{$section->id}->{$uploader->wm_username}->{'images'} = [];
+			}
+			push @{$authors_hr->{$section->id}->{$uploader->wm_username}->{'images'}}, [$section, $image];
+			$authors_hr->{$section->id}->{$uploader->wm_username}->{'count'}++;
 		}
 	}
 
@@ -132,31 +132,24 @@ sub check_author_photos_in_section {
 	my $actual_section;
 	foreach my $section_id (sort keys %{$authors_hr}) {
 		foreach my $author (sort keys %{$authors_hr->{$section_id}}) {
-			if ($authors_hr->{$section_id}->{$author} > $number_of_photos) {
+			if ($authors_hr->{$section_id}->{$author}->{'count'} > $number_of_photos) {
 				if (! defined $actual_section) {
 					$actual_section = $section_id;
 					$self->_verbose("Section '$section_id':");
 				}
-				$self->_verbose("\tAuthor '$author': $authors_hr->{$section_id}->{$author}");
+				$self->_verbose("\tAuthor '$author': $authors_hr->{$section_id}->{$author}->{'count'}");
 
 				# Report photos by author
-				# XXX To data object.
-				my $person = $self->{'schema'}->resultset('Person')->search({
-					'wm_username' => $author,
-				})->single;
-				# XXX To data object.
-				my @images = $self->{'schema'}->resultset('Image')->search({
-					'uploader_id' => $person->person_id,
-				});
-				foreach my $image (@images) {
+				my @images = @{$authors_hr->{$section_id}->{$author}->{'images'}};
+				foreach my $section_image_ar (@images) {
 					$self->{'backend'}->save_validation_bad(Data::Commons::Vote::ValidationBad->new(
 						'competition' => $competition,
 						'created_by' => $self->{'creator'},
-						# XXX To data object.
-						'image' => $self->{'backend'}->{'_transform'}->image_db2obj($image),
+						'image' => $section_image_ar->[1],
+						'section' => $section_image_ar->[0],
 						'validation_type' => $validation->validation_type,
 					));
-					$self->_verbose("\t\t".$self->{'_commons_link'}->mw_link($image->image));
+					$self->_verbose("\t\t".$self->{'_commons_link'}->mw_link($section_image_ar->[1]->commons_name));
 				}
 			}
 		}
@@ -205,6 +198,7 @@ sub check_image_dimension {
 					'competition' => $competition,
 					'created_by' => $self->{'creator'},
 					'image' => $image,
+					'section' => $section,
 					'validation_type' => $validation->validation_type,
 				));
 				$self->_verbose($image->width.'x'.$image->height.': '.
@@ -243,6 +237,7 @@ sub check_image_dimensions_short {
 					'competition' => $competition,
 					'created_by' => $self->{'creator'},
 					'image' => $image,
+					'section' => $section,
 					'validation_type' => $validation->validation_type,
 				));
 				$self->_verbose($image->width.'x'.$image->height.': '.
@@ -282,6 +277,7 @@ sub check_image_dimensions_long {
 					'competition' => $competition,
 					'created_by' => $self->{'creator'},
 					'image' => $image,
+					'section' => $section,
 					'validation_type' => $validation->validation_type,
 				));
 				$self->_verbose($image->width.'x'.$image->height.': '.
@@ -305,7 +301,7 @@ sub check_image_in_one_section {
 	foreach my $section (@{$competition->sections}) {
 		foreach my $image (@{$section->images}) {
 			if (! exists $image_hr->{$image->commons_name}->{'object'}) {
-				$image_hr->{$image->commons_name}->{'object'} = $image;
+				$image_hr->{$image->commons_name}->{'object'} = [$section, $image];
 			}
 			$image_hr->{$image->commons_name}->{'count'}++;
 		}
@@ -316,7 +312,8 @@ sub check_image_in_one_section {
 			$self->{'backend'}->save_validation_bad(Data::Commons::Vote::ValidationBad->new(
 				'competition' => $competition,
 				'created_by' => $self->{'creator'},
-				'image' => $image_hr->{$image}->{'object'},
+				'image' => $image_hr->{$image}->{'object'}->[1],
+				'section' => $image_hr->{$image}->{'object'}->[0],
 				'validation_type' => $validation->validation_type,
 			));
 			$self->_verbose("Image '$image' is in more sections.");
@@ -353,6 +350,7 @@ sub check_image_size {
 					'competition' => $competition,
 					'created_by' => $self->{'creator'},
 					'image' => $image,
+					'section' => $section,
 					'validation_type' => $validation->validation_type,
 				));
 				$self->_verbose($image->size.': '.
@@ -405,6 +403,7 @@ sub check_image_created {
 					'competition' => $competition,
 					'created_by' => $self->{'creator'},
 					'image' => $image,
+					'section' => $section,
 					'validation_type' => $validation->validation_type,
 				));
 				$self->_verbose($image->dt_created.': '.
@@ -456,6 +455,7 @@ sub check_image_uploaded {
 					'competition' => $competition,
 					'created_by' => $self->{'creator'},
 					'image' => $image,
+					'section' => $section,
 					'validation_type' => $validation->validation_type,
 				));
 				$self->_verbose($image->dt_uploaded.': '.
@@ -475,6 +475,8 @@ sub validate {
 	my $competition = $self->{'backend'}->fetch_competition({
 		'competition_id' => $competition_id,
 	}, {}, {
+		'sections' => 1,
+		'section_images' => 1,
 		'validations' => 1,
 	});
 
