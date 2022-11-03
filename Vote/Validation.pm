@@ -472,7 +472,11 @@ sub check_image_uploaded {
 sub validate {
 	my ($self, $competition_id) = @_;
 
-	my $competition = $self->{'backend'}->fetch_competition($competition_id);
+	my $competition = $self->{'backend'}->fetch_competition({
+		'competition_id' => $competition_id,
+	}, {}, {
+		'validations' => 1,
+	});
 
 	# Delete validations for competition.
 	$self->{'backend'}->delete_validation_bads({

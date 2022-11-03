@@ -66,7 +66,9 @@ sub delete_competition_section_images {
 		err "Bad object, must be a 'Data::Commons::Vote::Competition' object.";
 	}
 
-	my @sections = $self->{'backend'}->fetch_competition_sections($competition->id);
+	my @sections = $self->{'backend'}->fetch_competition_sections({
+		'competition_id' => $competition->id,
+	});
 	my $num = 0;
 	foreach my $section (@sections) {
 		my $deleted_images_count = $self->{'backend'}->delete_section_images($section->id);

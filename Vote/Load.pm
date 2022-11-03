@@ -82,7 +82,9 @@ sub new {
 sub load {
 	my ($self, $competition_id, $opts_hr) = @_;
 
-	my @sections = $self->{'backend'}->fetch_competition_sections($competition_id);
+	my @sections = $self->{'backend'}->fetch_competition_sections({
+		'competition_id' => $competition_id,
+	});
 	foreach my $section (@sections) {
 		$self->_load_section($section->id, $opts_hr);
 	}
@@ -97,7 +99,9 @@ sub load {
 	my $log_type = $self->{'backend'}->fetch_log_type_name('load_competition');
 
 	# Competition.
-	my $competition = $self->{'backend'}->fetch_competition($competition_id);
+	my $competition = $self->{'backend'}->fetch_competition({
+		'competition_id' => $competition_id,
+	});
 
 	# Save log.
 	$self->{'backend'}->save_log(

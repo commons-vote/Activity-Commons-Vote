@@ -38,7 +38,9 @@ sub new {
 sub newcomers {
 	my ($self, $competition_id) = @_;
 
-	my $comp = $self->{'_backend'}->fetch_competition($competition_id);
+	my $comp = $self->{'_backend'}->fetch_competition({
+		'competition_id' => $competition_id,
+	});
 	if (! defined $comp) {
 		return ();
 	}
