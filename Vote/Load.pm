@@ -166,9 +166,12 @@ sub load_commons_image {
 	my $creator = $self->{'_wikibase_query'}->query($struct_data, 'P170');
 	if (defined $creator) {
 		$author = $self->_human_name($creator);
-		# TODO Main train station prague.jpg
-		$self->_verbose("Found creator in structured data for image '$commons_name' (".$author.').');
+		if (defined $author) {
+			$self->_verbose("Found creator in structured data for image '$commons_name' (".$author.').');
+		}
 	}
+	# TODO Author name string qualifier in P170
+	# https://commons.wikimedia.org/wiki/File:Karl%C5%A1tejn_in_winter.jpg
 
 	# Fetch or create uploader.
 	my $uploader;
