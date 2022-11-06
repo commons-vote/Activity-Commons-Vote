@@ -139,7 +139,9 @@ sub load_commons_image {
 	my $license;
 	if (defined $license_qid) {
 		$license = $self->_license_text($license_qid);
-		$self->_verbose("Found license in structured data for image '$commons_name' (".$license->text.').');
+		if (defined $license) {
+			$self->_verbose("Found license in structured data for image '$commons_name' (".$license->text.').');
+		}
 	}
 
 	# Fetch inception.
@@ -294,14 +296,20 @@ sub _license_text {
 		my ($title, $short_name);
 		if ($item) {
 			$title = $self->{'_wikibase_query'}->query($item, 'P1476');
+			if (! $title) {
+				$title = $self->{'_wikibase_query'}->query($item, 'label:en');
+				if (! $title) {
+					$title = $self->{'_wikibase_query'}->query($item, 'label');
+				}
+			}
 			$short_name = $self->{'_wikibase_query'}->query($item, 'P1813');
 		} else {
+			warn 'No Wikidata item for license.';
 			return;
 		}
 		if (! $title) {
-			err 'No license text.',
-				'Wikidata QID', $license_qid,
-			;
+			warn 'No license text.';
+			return;
 		}
 
 		$license = $self->{'backend'}->save_license(
