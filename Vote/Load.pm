@@ -196,10 +196,20 @@ sub load_commons_image {
 	}
 
 	# Get comment.
-	my $comment;
-	if (defined $image_info_hr->{'comment'}) {
+	my $comment = $self->{'_wikibase_query'}->query($struct_data, 'label:en');
+	if (defined $comment) {
+		$self->_verbose("Found image comment in structured data for image '$commons_name' (".$comment.').');
+	}
+	if (! defined $comment && defined $image_info_hr->{'comment'}) {
 		$comment = $self->{'_html_strip'}->parse(substr($image_info_hr->{'comment'}, 0, 1000));
 		$self->{'_html_strip'}->eof;
+		$self->_verbose("Found image comment on api for image '$commons_name' (".$comment.').');
+	}
+	if (! defined $comment) {
+		$comment = $self->{'_wikibase_query'}->query($struct_data, 'label');
+		if (defined $comment) {
+			$self->_verbose("Found image comment in structured data for image '$commons_name' (".$comment.').');
+		}
 	}
 
 	my $image = $self->{'backend'}->save_image(
