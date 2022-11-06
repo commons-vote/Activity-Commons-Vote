@@ -195,9 +195,12 @@ sub load_commons_image {
 		}
 	}
 
-	# Fix comment.
-	my $comment = $self->{'_html_strip'}->parse(substr($image_info_hr->{'comment'}, 0, 1000));
-	$self->{'_html_strip'}->eof;
+	# Get comment.
+	my $comment;
+	if (defined $image_info_hr->{'comment'}) {
+		$comment = $self->{'_html_strip'}->parse(substr($image_info_hr->{'comment'}, 0, 1000));
+		$self->{'_html_strip'}->eof;
+	}
 
 	my $image = $self->{'backend'}->save_image(
 		Data::Commons::Vote::Image->new(
