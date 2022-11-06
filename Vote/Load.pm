@@ -272,13 +272,9 @@ sub _human_name {
 	my $human_name;
 	my $item = $self->{'_wikibase_api'}->get_item($human_qid);
 	if ($item) {
-		my $label_ar = $item->labels;
-		foreach my $label (@{$label_ar}) {
-			# XXX language.
-			if (defined $label->value) {
-				$human_name = $label->value;
-				last;
-			}
+		$human_name = $self->{'_wikibase_query'}->query_item($item, 'label:en');
+		if (! defined $human_name) {
+			$human_name = $self->{'_wikibase_query'}->query_item($item, 'label');
 		}
 	} else {
 		return;
