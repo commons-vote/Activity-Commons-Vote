@@ -356,7 +356,9 @@ sub _load_section {
 		}
 		$self->_verbose("Fetch images in Wikimedia Commons category '$category'.");
 		foreach my $image_hr (@images) {
-			my $image = $self->load_commons_image($image_hr->{'title'});
+			my $image_title = $image_hr->{'title'};
+			$image_title =~ s/^File:(.*)$/$1/ms;
+			my $image = $self->load_commons_image($image_title);
 
 			$self->{'backend'}->save_section_image(
 				Data::Commons::Vote::SectionImage->new(
