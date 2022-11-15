@@ -71,6 +71,7 @@ sub delete_competition_section_images {
 		err "Bad object, must be a 'Data::Commons::Vote::Competition' object.";
 	}
 
+	# Delete section images.
 	my @sections = $self->{'backend'}->fetch_competition_sections({
 		'competition_id' => $competition->id,
 	});
