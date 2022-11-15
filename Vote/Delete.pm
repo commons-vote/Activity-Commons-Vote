@@ -91,6 +91,23 @@ sub delete_competition_section_images {
 		$self->_verbose("No competition images for '".$competition->id."' id.");
 	}
 
+	# Delete votes for images.
+	foreach my $competition_voting (@{$competition->voting_types}) {
+		my $vote_count = $self->{'backend'}->delete_vote({
+			'competition_voting_id' => $competition_voting->id,
+		});
+		$self->_verbose("Delete competition votes ($vote_count) for '".
+			$competition_voting->voting_type->description."' (".
+			$competition_voting->id.").");
+	}
+
+	# Reset information about loading.
+	$self->{'backend'}->schema->resultset('Competition')->search({
+		'competition_id' => $competition->id,
+	})->update({
+		'images_loaded_at' => undef,
+	});
+
 	# Log type.
 	my $log_type = $self->{'backend'}->fetch_log_type_name('delete_competition_images');
 
