@@ -35,6 +35,11 @@ sub new {
 		err "Parameter 'backend' must be a 'Backend::DB::Commons::Vote' object.";
 	}
 
+	# Check creator.
+	if (! defined $self->{'creator'}) {
+		err "Parameter 'creator' is required.";
+	}
+
 	# Check verbose code.
 	if (defined $self->{'verbose_cb'} && ref $self->{'verbose_cb'} ne 'CODE') {
 		err "Parameter 'verbose_cb' must be a code.";
