@@ -162,6 +162,23 @@ sub load_commons_image {
 			$self->_verbose("Found inception in structured data for image '$commons_name' (".$dt_created.').');
 		}
 	}
+	if (! defined $dt_created && defined $image_info_hr->{'datetime_created'}) {
+
+		# YYYY-MM-DD HH:MM:SS or YYYY-MM-DD
+		if ($image_info_hr->{'datetime_created'} =~ m/^\d{4}-\d{2}-\d{2}\s*(\d{2}:\d{2}:\d{2})?$/ms) {
+			$dt_created = eval {
+				$self->_commons_ts2_to_dt($image_info_hr->{'datetime_created'}, $commons_name);
+			};
+			if ($EVAL_ERROR) {
+				$self->_verbose($EVAL_ERROR.': '.$commons_name);
+			} else {
+				$self->_verbose("Parse created date from 'datetime_created' field.");
+			}
+		} else {
+			$self->_verbose("Cannot parse date of image creation (".$image_info_hr->{'datetime_created'}.").");
+		}
+	}
+
 
 	# Fetch creator.
 	my $author;
@@ -181,18 +198,6 @@ sub load_commons_image {
 		$uploader = $self->_uploader_wm_username($image_first_rev_hr->{'user'});
 		$self->_verbose("Fetch or create uploader record for ".
 			"Wikimedia user '$image_first_rev_hr->{'user'}'.");
-	}
-
-	if (! defined $dt_created && defined $image_info_hr->{'datetime_created'}) {
-		# YYYY-MM-DD HH:MM:SS
-		$dt_created = eval {
-			$self->_commons_ts2_to_dt($image_info_hr->{'datetime_created'}, $commons_name);
-		};
-		if ($EVAL_ERROR) {
-			$self->_verbose($EVAL_ERROR.': '.$commons_name);
-		} else {
-			$self->_verbose("Parse created date from 'datetime_created' field.");
-		}
 	}
 
 	# Get comment.
